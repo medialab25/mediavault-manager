@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.routes import views, media, tasks, system
+from app.jellyfin.router import router as jellyfin_router
 from app.scheduler import start_scheduler, stop_scheduler
 
 @asynccontextmanager
@@ -34,6 +35,7 @@ app.include_router(views.router)
 app.include_router(media.router, prefix="/media")
 app.include_router(tasks.router)
 app.include_router(system.router, prefix="/system")
+app.include_router(jellyfin_router)
 
 @app.get("/")
 async def root(request: Request):

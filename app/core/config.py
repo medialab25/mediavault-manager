@@ -18,12 +18,23 @@ class Settings(BaseSettings):
     ALLOWED_EXTENSIONS: set = {"jpg", "jpeg", "png", "gif", "mp4", "mp3"}
     MAX_CONTENT_LENGTH: int = 16 * 1024 * 1024  # 16MB
     
+    # Jellyfin settings
+    JELLYFIN_URL: str = "http://localhost:8096"
+    JELLYFIN_API_KEY: str = ""
+    
     @classmethod
     def from_json(cls, json_file: str = "config.json") -> "Settings":
         """Load settings from a JSON file."""
         if Path(json_file).exists():
             with open(json_file, "r") as f:
                 config_data = json.load(f)
+            
+            # Handle Jellyfin config separately
+            if "jellyfin" in config_data:
+                jellyfin_config = config_data.pop("jellyfin")
+                config_data["JELLYFIN_URL"] = jellyfin_config.get("url", "http://localhost:8096")
+                config_data["JELLYFIN_API_KEY"] = jellyfin_config.get("api_key", "")
+            
             return cls(**config_data)
         return cls()
     

@@ -4,5 +4,9 @@
     "DESCRIPTION": "A FastAPI project with Jinja2 templating",
     "MEDIA_ROOT": "media",
     "ALLOWED_EXTENSIONS": ["jpg", "jpeg", "png", "gif", "mp4", "mp3"],
-    "MAX_CONTENT_LENGTH": 16777216
+    "MAX_CONTENT_LENGTH": 16777216,
+    "jellyfin": {
+        "url": "http://192.168.10.20",
+        "api_key": "dc8ede37692c47f08322f09e711840fb"
+    }
 } 
