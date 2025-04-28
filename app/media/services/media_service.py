@@ -22,8 +22,12 @@ class MediaService:
             logger.error(f"Error in refresh_media: {str(e)}", exc_info=True)
             raise
 
-    async def merge_media(self):
-        """Merge media files according to the configuration settings."""
+    async def merge_media(self, refresh: bool = False):
+        """Merge media files according to the configuration settings.
+        
+        Args:
+            refresh (bool): If True, refresh the media library after merging. Defaults to False.
+        """
         try:
             logger.debug("Starting media merge")
             
@@ -53,6 +57,11 @@ class MediaService:
                 if not success:
                     logger.error(f"Failed to merge {media_type}")
                     return {"status": "error", "message": f"Failed to merge {media_type}"}
+
+            # Refresh media library if requested
+            if refresh:
+                logger.debug("Refreshing media library after merge")
+                await self.refresh_media()
 
             return {"status": "success", "message": "Media merge completed"}
         except Exception as e:

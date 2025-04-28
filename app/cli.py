@@ -20,7 +20,7 @@ API_BASE_URL = "http://localhost:8000"
 
 async def make_request(method: str, endpoint: str, data: Optional[dict] = None) -> dict:
     """Make an HTTP request to the API"""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=300.0) as client:  # 5 minute timeout
         url = f"{API_BASE_URL}/{endpoint}"
         try:
             if method == "GET":
@@ -45,10 +45,10 @@ def refresh():
     console.print(f"[green]Success:[/green] {result['message']}")
 
 @media_app.command()
-def merge():
+def merge(refresh: bool = typer.Option(False, "--refresh", "-r", help="Refresh the media library after merging")):
     """Merge the media library"""
     console.print("[yellow]Merging media library...[/yellow]")
-    result = asyncio.run(make_request("POST", "api/media/merge"))
+    result = asyncio.run(make_request("POST", f"api/media/merge?refresh={str(refresh).lower()}"))
     console.print(f"[green]Success:[/green] {result['message']}")
 
 @media_app.command()
