@@ -35,3 +35,15 @@ class MediaGroupFolder(BaseModel):
     class Config:
         from_attributes = True
 
+class MediaGroupFolderList(BaseModel):
+    groups: List[MediaGroupFolder]
+
+    class Config:
+        from_attributes = True
+
+class MediaCacheList(BaseModel):
+    hot_groups: List[MediaGroupFolderList]
+    cold_groups: List[MediaGroupFolderList]
+
+    class Config:
+        from_attributes = True

@@ -25,5 +25,9 @@
                 "merged_path": "/srv/storage/media/movies-merged"
             }
         }
+    },
+    "MEDIA_CACHE": {
+        "hot_path": "/srv/disks/media-ssd/media",
+        "cold_path": "/srv/storage/media"
     }
 } 

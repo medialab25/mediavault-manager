@@ -1,8 +1,9 @@
 from typing import List
-from ..models.media_models import MediaItem, MediaItemFolder, MediaGroupFolder
+from ..models.media_models import MediaCacheList, MediaItem, MediaItemFolder, MediaGroupFolder
 from app.jellyfin.client import JellyfinClient
 from app.core.config import settings
 from ._merge_media import merge_libraries
+from ._media_manager import MediaDataManager as MediaManager
 import logging
 
 logger = logging.getLogger(__name__)
@@ -10,7 +11,8 @@ logger = logging.getLogger(__name__)
 class MediaService:
     def __init__(self):
         self.jellyfin_client = JellyfinClient()
-
+        self.media_manager = MediaManager()
+        
     async def refresh_media(self):
         """Refresh the media library by calling the Media Library API."""
         try:
@@ -66,6 +68,15 @@ class MediaService:
             return {"status": "success", "message": "Media merge completed"}
         except Exception as e:
             logger.error(f"Error in merge_media: {str(e)}", exc_info=True)
+            raise
+
+    async def get_cache_list(self) -> MediaCacheList:
+        """Get the cache list by calling the Media Cache API."""
+        try:
+            cache_list = self.media_manager.get_cache_list()
+            return cache_list
+        except Exception as e:
+            logger.error(f"Error in get_cache_list: {str(e)}", exc_info=True)
             raise
 
 # class MediaService:

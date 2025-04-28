@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Optional, Dict
 from pathlib import Path
 
-from app.media.models.media_models import MediaItem, MediaItemFolder, MediaGroupFolder, ExtendedMediaInfo
+from app.media.models.media_models import MediaGroupFolderList, MediaItem, MediaItemFolder, MediaGroupFolder, ExtendedMediaInfo
 
 class MediaDataManager:
     def __init__(self, base_path: str):
@@ -108,3 +108,8 @@ class MediaDataManager:
                     print(f"Error reading group {item}: {e}")
 
         return groups
+
+    def get_media_group_folder_list(self, path: str) -> MediaGroupFolderList:
+        """Get the media group folder list for a given path."""
+        groups = self.list_media_groups(path)
+        return MediaGroupFolderList(groups=groups)

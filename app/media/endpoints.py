@@ -37,16 +37,16 @@ async def merge_media(refresh: bool = False):
         logger.error(f"Error during media merge: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/cache/hot", status_code=200)
-async def get_hot_cache():
-    """Get the hot cache by calling the Media Cache API."""
+@router.get("/cache/list", status_code=200)
+async def get_cache_list():
+    """Get the cache list by calling the Media Cache API."""
     try:
-        logger.debug("Starting hot cache")
-        result = await media_service.get_hot_cache()
-        logger.debug(f"Hot cache completed: {result}")
+        logger.debug("Starting cache list")
+        result = await media_service.get_cache_list()
+        logger.debug(f"Cache list completed: {result}")
         return result
     except Exception as e:
-        logger.error(f"Error during hot cache: {str(e)}", exc_info=True)
+        logger.error(f"Error during cache list: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 # @router.get("/", response_model=List[Media])
