@@ -6,7 +6,7 @@ from datetime import datetime
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
-from app.routes import views, media, tasks
+from app.routes import views, media, tasks, system
 from app.scheduler import start_scheduler, stop_scheduler
 
 @asynccontextmanager
@@ -33,6 +33,7 @@ templates = Jinja2Templates(directory="app/templates")
 app.include_router(views.router)
 app.include_router(media.router, prefix="/media")
 app.include_router(tasks.router)
+app.include_router(system.router, prefix="/system")
 
 @app.get("/")
 async def root(request: Request):
