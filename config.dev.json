@@ -9,7 +9,17 @@
         "url": "http://192.168.10.20",
         "api_key": "dc8ede37692c47f08322f09e711840fb"
     },
+    "MEDIA_MERGE": {
+        "user": "1000",
+        "group": "1000"
+    },
     "MEDIA_LIBRARY": {
-        "path": "./test/media"
+        "default_source_path": "./test/media",
+        "source_matrix": {
+            "movies": {
+                "quality_order": ["uhd", "hd"],
+                "merged_path": "./test/merged/movies-merged"
+            }
+        }
     }
 } 

@@ -6,9 +6,8 @@ from pathlib import Path
 
 class Settings(BaseSettings):
     """
-    Application settings loaded from environment variables, .env file, and config.json.
-    Used throughout the application to access configuration values.
-    Instantiated as 'settings' at the bottom of this file.
+    Application settings loaded from environment variables, .env file, and config files.
+    Uses config.json as base and overrides with config.dev.json in development mode.
     """
     PROJECT_NAME: str = "MediaVault Manager"
     VERSION: str = "0.1.0"
@@ -27,27 +26,47 @@ class Settings(BaseSettings):
     }
 
     # Media Library settings
-    MEDIA_LIBRARY: Dict[str, str] = {
-        "path": ""
+    MEDIA_LIBRARY: Dict[str, Any] = {}
+
+    # Media Merge settings
+    MEDIA_MERGE: Dict[str, str] = {
+        "user": "1000",
+        "group": "1000"
     }
     
     def __init__(self, **data):
-        env = os.getenv("ENV", "dev")
-        # If ENV not set, default to "dev"
-        if not env:
-            env = "dev"
-        config_file = f"config.{env}.json"
-        
+        # First load production config as base
         try:
-            with open(config_file, 'r') as f:
-                config = json.load(f)
-                data.update(config)
+            with open("config.json", 'r') as f:
+                prod_config = json.load(f)
+                data.update(prod_config)
         except FileNotFoundError:
-            print(f"Warning: Configuration file {config_file} not found, using defaults")
+            print("Warning: Production configuration file config.json not found")
         except json.JSONDecodeError:
-            print(f"Warning: Invalid JSON in configuration file {config_file}, using defaults")
+            print("Warning: Invalid JSON in production configuration file config.json")
+        
+        # Then override with dev config if in development mode
+        env = os.getenv("ENV", "dev")
+        if env == "dev":
+            try:
+                with open("config.dev.json", 'r') as f:
+                    dev_config = json.load(f)
+                    # Deep merge the configurations
+                    self._deep_merge(data, dev_config)
+            except FileNotFoundError:
+                print("Warning: Development configuration file config.dev.json not found")
+            except json.JSONDecodeError:
+                print("Warning: Invalid JSON in development configuration file config.dev.json")
         
         super().__init__(**data)
+
+    def _deep_merge(self, target: Dict[str, Any], source: Dict[str, Any]) -> None:
+        """Deep merge two dictionaries, with source values taking precedence."""
+        for key, value in source.items():
+            if key in target and isinstance(target[key], dict) and isinstance(value, dict):
+                self._deep_merge(target[key], value)
+            else:
+                target[key] = value
 
     def __getattr__(self, name: str) -> Any:
         """Handle missing attributes"""
@@ -73,5 +92,5 @@ class Settings(BaseSettings):
         env_file = ".env"
         case_sensitive = True
 
-# Try to load from config.json first, fall back to default settings if not found
-settings = Settings.from_json() 
+# Initialize settings
+settings = Settings() 

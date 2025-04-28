@@ -1,6 +1,8 @@
 from typing import List
 from ..models.media_models import Media
 from app.jellyfin.client import JellyfinClient
+from app.core.config import settings
+from ._merge_media import merge_libraries
 import logging
 
 logger = logging.getLogger(__name__)
@@ -18,6 +20,43 @@ class MediaService:
             return {"status": "success", "message": "Media library refresh initiated"}
         except Exception as e:
             logger.error(f"Error in refresh_media: {str(e)}", exc_info=True)
+            raise
+
+    async def merge_media(self):
+        """Merge media files according to the configuration settings."""
+        try:
+            logger.debug("Starting media merge")
+            
+            # Get configuration values
+            source_path = settings.MEDIA_LIBRARY["default_source_path"]
+            source_matrix = settings.MEDIA_LIBRARY["source_matrix"]
+            user_id = int(settings.MEDIA_MERGE["user"])
+            group_id = int(settings.MEDIA_MERGE["group"])
+
+            # Process each media type in the source matrix
+            for media_type, config in source_matrix.items():
+                quality_order = config["quality_order"]
+                merged_path = config["merged_path"]
+                
+                logger.debug(f"Merging {media_type} with quality order {quality_order} to {merged_path}")
+                
+                # Call merge_libraries with the configuration values
+                success = merge_libraries(
+                    media_type=media_type,
+                    source_paths=[source_path],
+                    quality_list=quality_order,
+                    merged_path=merged_path,
+                    user_id=user_id,
+                    group_id=group_id
+                )
+                
+                if not success:
+                    logger.error(f"Failed to merge {media_type}")
+                    return {"status": "error", "message": f"Failed to merge {media_type}"}
+
+            return {"status": "success", "message": "Media merge completed"}
+        except Exception as e:
+            logger.error(f"Error in merge_media: {str(e)}", exc_info=True)
             raise
 
 # class MediaService:

@@ -26,6 +26,12 @@
             <p>Refresh your media library</p>
             <button class="refresh-button" onclick="refreshMedia()">Refresh Media</button>
         </div>
+
+        <div class="feature-card">
+            <h3>Media Merge</h3>
+            <p>Merge your media library</p>
+            <button class="merge-button" onclick="mergeMedia()">Merge Media</button>
+        </div>
     </div>
 </div>
 
@@ -44,6 +50,23 @@
             .catch(error => {
                 console.error('Error:', error);
                 alert('Error refreshing media');
+            });
+    }
+
+    function mergeMedia() {
+        fetch('/api/media/merge', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                alert('Media merge completed!');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error merging media');
             });
     }
 </script>

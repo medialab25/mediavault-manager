@@ -21,6 +21,18 @@ async def refresh_media():
         logger.error(f"Error during media refresh: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
     
+@router.post("/merge", status_code=200)
+async def merge_media():
+    """Merge the media library by calling the Media Merge API."""
+    try:
+        logger.debug("Starting media merge")
+        result = await media_service.merge_media()
+        logger.debug(f"Media merge completed: {result}")
+        return result
+    except Exception as e:
+        logger.error(f"Error during media merge: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+    
 # @router.get("/", response_model=List[Media])
 # async def list_media():
 #     """List all media items in the library."""

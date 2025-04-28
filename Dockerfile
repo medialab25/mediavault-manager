@@ -26,7 +26,9 @@ COPY . .
 # Expose the port the app runs on
 EXPOSE 8000
 
-# Set environment to production
+# Set environment to production mode
+# This ensures the application uses config.json as base
+# and doesn't load development overrides from config.dev.json
 ENV ENV=prod
 
 # Command to run the application
