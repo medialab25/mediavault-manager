@@ -25,5 +25,9 @@
                 "merged_path": "./test/merged/tv-merged"
             }
         }
+    },
+    "MEDIA_CACHE": {
+        "hot_path": "./test/cache/hot",
+        "cold_path": "./test/cache/cold"
     }
 } 

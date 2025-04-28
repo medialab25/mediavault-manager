@@ -33,6 +33,12 @@ class Settings(BaseSettings):
         "user": "1000",
         "group": "1000"
     }
+
+    # Media Cache settings
+    MEDIA_CACHE: Dict[str, str] = {
+        "hot_path": "./test/cache/hot",
+        "cold_path": "./test/cache/cold"
+    }
     
     def __init__(self, **data):
         # First load production config as base
