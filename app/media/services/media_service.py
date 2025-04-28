@@ -1,0 +1,64 @@
+from typing import List
+from ..models.media_models import Media
+from app.jellyfin.client import JellyfinClient
+
+
+class MediaService:
+    def __init__(self):
+        self.jellyfin_client = JellyfinClient()
+
+    async def refresh_media(self):
+        """Refresh the media library by calling the Media Library API."""
+        return await self.jellyfin_client.refresh_media()
+
+# class MediaService:
+#     def __init__(self, media_root: str):
+#         self.media_root = media_root
+
+#     def scan_directory(self, directory: str) -> List[Media]:
+#         """Scan a directory for media files and return Media objects."""
+#         media_items = []
+        
+#         for root, _, files in os.walk(directory):
+#             for file in files:
+#                 file_path = os.path.join(root, file)
+#                 if self._is_media_file(file):
+#                     media_items.append(self._create_media_item(file_path))
+        
+#         return media_items
+
+#     def _is_media_file(self, filename: str) -> bool:
+#         """Check if a file is a media file based on its extension."""
+#         media_extensions = {
+#             # Video
+#             '.mp4', '.avi', '.mkv', '.mov', '.wmv',
+#             # Audio
+#             '.mp3', '.wav', '.flac', '.m4a',
+#             # Images
+#             '.jpg', '.jpeg', '.png', '.gif'
+#         }
+#         return os.path.splitext(filename)[1].lower() in media_extensions
+
+#     def _create_media_item(self, file_path: str) -> Media:
+#         """Create a Media object from a file path."""
+#         stats = os.stat(file_path)
+#         return Media(
+#             id=str(hash(file_path)),
+#             title=os.path.splitext(os.path.basename(file_path))[0],
+#             type=self._determine_media_type(file_path),
+#             path=file_path,
+#             size=stats.st_size,
+#             created_at=datetime.fromtimestamp(stats.st_ctime),
+#             updated_at=datetime.fromtimestamp(stats.st_mtime)
+#         )
+
+#     def _determine_media_type(self, file_path: str) -> str:
+#         """Determine the type of media based on file extension."""
+#         ext = os.path.splitext(file_path)[1].lower()
+#         if ext in {'.mp4', '.avi', '.mkv', '.mov', '.wmv'}:
+#             return 'video'
+#         elif ext in {'.mp3', '.wav', '.flac', '.m4a'}:
+#             return 'audio'
+#         elif ext in {'.jpg', '.jpeg', '.png', '.gif'}:
+#             return 'image'
+#         return 'unknown'

@@ -21,6 +21,7 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    position: relative;
 }
 
 /* Layout */
@@ -32,8 +33,10 @@ body {
 }
 
 main {
-    flex: 1;
+    flex: 1 0 auto;
     padding: 2rem 0;
+    min-height: calc(100vh - 120px);
+    /* Adjust based on your navbar and footer height */
 }
 
 .layout {

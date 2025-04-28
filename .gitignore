@@ -28,12 +28,9 @@ wheels/
 
 # IDE
 .idea/
-.vscode/
+#.vscode/
 *.swp
 *.swo
-
-# Media files
-media/
 
 # Logs
 *.log

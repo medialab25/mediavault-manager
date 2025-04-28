@@ -20,6 +20,31 @@
             <h3>Media Management</h3>
             <p>Upload and manage your media files</p>
         </div>
+
+        <div class="feature-card">
+            <h3>Media Refresh</h3>
+            <p>Refresh your media library</p>
+            <button class="refresh-button" onclick="refreshMedia()">Refresh Media</button>
+        </div>
     </div>
 </div>
+
+<script>
+    function refreshMedia() {
+        fetch('/api/media/refresh', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                alert('Media refresh completed!');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error refreshing media');
+            });
+    }
+</script>
 {% endblock %}

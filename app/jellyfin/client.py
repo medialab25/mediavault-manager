@@ -45,3 +45,9 @@ class JellyfinClient:
     async def close(self):
         """Close the HTTP client"""
         await self.client.aclose() 
+
+    async def refresh_media(self):
+        """Refresh the media library"""
+        response = await self.client.post("/Library/Refresh")
+        return response.json()
+    
