@@ -67,12 +67,20 @@ def main():
         
         # Run the command with the virtual environment's Python
         cmd = [venv_python, "-m", "app.cli"] + sys.argv[1:]
-        subprocess.run(cmd, env=env, check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"Error: {e}")
-        print("Please make sure you have installed all required packages:")
-        print("pip install -r requirements.txt")
-        sys.exit(1)
+        result = subprocess.run(cmd, env=env, capture_output=True, text=True)
+        
+        # Print the output
+        if result.stdout:
+            print(result.stdout)
+        if result.stderr:
+            print(result.stderr)
+        
+        # Only show package-related error for actual package errors
+        if result.returncode != 0 and "ModuleNotFoundError" in result.stderr:
+            print("Please make sure you have installed all required packages:")
+            print("pip install -r requirements.txt")
+        
+        sys.exit(result.returncode)
     except Exception as e:
         print(f"Error: {e}")
         sys.exit(1)

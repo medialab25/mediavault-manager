@@ -1,56 +1,37 @@
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel
+from enum import Enum
 
-class Media(BaseModel):
-    id: str
-    title: str
-    type: str  # movie, tv_show, music, etc.
-    path: str
+class ExtendedMediaInfo(BaseModel):
     size: int
     created_at: datetime
     updated_at: datetime
     metadata: Optional[dict] = None
 
+class MediaItem(BaseModel):
+    filename: str
+    season: Optional[int] = None
+    episode: Optional[int] = None
+    extended: Optional[ExtendedMediaInfo] = None
+    
     class Config:
         from_attributes = True
 
-class Episode(BaseModel):
-    id: str
+# Movie/TVShow/Anime/Documentary/Music
+class MediaItemFolder(BaseModel):
     title: str
-    episode_number: int
-    path: str
-    size: int
-    duration: Optional[int] = None  # Duration in seconds
-    metadata: Optional[dict] = None
+    items: List[MediaItem]
 
     class Config:
         from_attributes = True
 
-class Season(BaseModel):
-    id: str
-    season_number: int
-    episodes: List[Episode]
-    metadata: Optional[dict] = None
-
+# tv-hd, movies-uhd, anime-4k, documentaries-4k
+class MediaGroupFolder(BaseModel):
+    media_type: str     # movies, tv
+    quality: str        # 4k, uhd, hd, sd
+    path: str           # /media/movies/4k, /media/tv/4k
+    
     class Config:
         from_attributes = True
 
-class Movie(Media):
-    duration: Optional[int] = None  # Duration in seconds
-    release_year: Optional[int] = None
-    director: Optional[str] = None
-    cast: Optional[List[str]] = None
-
-    class Config:
-        from_attributes = True
-
-class TVShow(Media):
-    seasons: List[Season]
-    total_seasons: int
-    total_episodes: int
-    network: Optional[str] = None
-    status: Optional[str] = None  # ongoing, ended, etc.
-
-    class Config:
-        from_attributes = True 

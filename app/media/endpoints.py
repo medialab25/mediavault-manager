@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
 import logging
-from .models.media_models import Media
+from .models.media_models import MediaItem, MediaItemFolder, MediaGroupFolder
 from .services.media_service import MediaService
 from app.core.config import settings
 

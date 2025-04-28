@@ -1,5 +1,5 @@
 from typing import List
-from ..models.media_models import Media
+from ..models.media_models import MediaItem, MediaItemFolder, MediaGroupFolder
 from app.jellyfin.client import JellyfinClient
 from app.core.config import settings
 from ._merge_media import merge_libraries
