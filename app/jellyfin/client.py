@@ -21,7 +21,7 @@ class JellyfinClient:
 
     async def get_libraries(self) -> Dict[str, Any]:
         """Get all Jellyfin libraries"""
-        response = await self.client.get("/Library/VirtualFolders")
+        response = await self.client.get("/Library/MediaFolders")
         return response.json()
 
     async def get_items(
