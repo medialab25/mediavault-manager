@@ -19,6 +19,10 @@
             "movies": {
                 "quality_order": ["uhd", "hd"],
                 "merged_path": "/srv/storage/media/movies-merged"
+            },
+            "tv": {
+                "quality_order": ["uhd", "hd"],
+                "merged_path": "/srv/storage/media/movies-merged"
             }
         }
     }
