@@ -1,7 +1,9 @@
 from typing import List
 from ..models.media_models import Media
 from app.jellyfin.client import JellyfinClient
+import logging
 
+logger = logging.getLogger(__name__)
 
 class MediaService:
     def __init__(self):
@@ -9,7 +11,14 @@ class MediaService:
 
     async def refresh_media(self):
         """Refresh the media library by calling the Media Library API."""
-        return await self.jellyfin_client.refresh_media()
+        try:
+            logger.debug("Calling Jellyfin refresh_media")
+            response = await self.jellyfin_client.refresh_media()
+            logger.debug(f"Jellyfin refresh response: {response}")
+            return {"status": "success", "message": "Media library refresh initiated"}
+        except Exception as e:
+            logger.error(f"Error in refresh_media: {str(e)}", exc_info=True)
+            raise
 
 # class MediaService:
 #     def __init__(self, media_root: str):

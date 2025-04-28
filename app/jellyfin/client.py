@@ -49,5 +49,7 @@ class JellyfinClient:
     async def refresh_media(self):
         """Refresh the media library"""
         response = await self.client.post("/Library/Refresh")
-        return response.json()
+        if response.status_code == 204:  # No Content
+            return {"status": "success", "message": "Library refresh initiated"}
+        return response.json() if response.content else {"status": "success", "message": "Library refresh initiated"}
     
