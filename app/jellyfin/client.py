@@ -4,8 +4,8 @@ from app.core.config import settings
 
 class JellyfinClient:
     def __init__(self):
-        self.base_url = settings.JELLYFIN_URL
-        self.api_key = settings.JELLYFIN_API_KEY
+        self.base_url = settings.JELLYFIN["url"]
+        self.api_key = settings.JELLYFIN["api_key"]
         self.client = httpx.AsyncClient(
             base_url=self.base_url,
             headers={

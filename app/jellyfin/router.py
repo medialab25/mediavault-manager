@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict, Any, AsyncGenerator
 from app.jellyfin.client import JellyfinClient
 
-router = APIRouter(prefix="/jellyfin", tags=["jellyfin"])
+router = APIRouter(prefix="/media", tags=["media"])
 
 async def get_jellyfin_client() -> AsyncGenerator[JellyfinClient, None]:
     client = JellyfinClient()

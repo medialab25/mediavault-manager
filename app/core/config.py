@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     Used throughout the application to access configuration values.
     Instantiated as 'settings' at the bottom of this file.
     """
-    PROJECT_NAME: str = "FastAPI Jinja2 Project"
+    PROJECT_NAME: str = "MediaVault Manager"
     VERSION: str = "0.1.0"
     DESCRIPTION: str = "A FastAPI project with Jinja2 templating"
     
@@ -19,8 +19,10 @@ class Settings(BaseSettings):
     MAX_CONTENT_LENGTH: int = 16 * 1024 * 1024  # 16MB
     
     # Jellyfin settings
-    JELLYFIN_URL: str = "http://localhost:8096"
-    JELLYFIN_API_KEY: str = ""
+    JELLYFIN: dict = {
+        "url": "http://localhost:8096",
+        "api_key": ""
+    }
     
     @classmethod
     def from_json(cls, json_file: str = "config.json") -> "Settings":
