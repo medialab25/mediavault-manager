@@ -3,14 +3,24 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from datetime import datetime
+from contextlib import asynccontextmanager
 
 from app.core.config import settings
-from app.routes import views, media
+from app.routes import views, media, tasks
+from app.scheduler import start_scheduler, stop_scheduler
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle startup and shutdown events"""
+    start_scheduler()
+    yield
+    stop_scheduler()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     description=settings.DESCRIPTION,
+    lifespan=lifespan
 )
 
 # Mount static files
@@ -22,6 +32,7 @@ templates = Jinja2Templates(directory="app/templates")
 # Include routers
 app.include_router(views.router)
 app.include_router(media.router, prefix="/media")
+app.include_router(tasks.router)
 
 @app.get("/")
 async def root(request: Request):
