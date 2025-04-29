@@ -6,7 +6,7 @@ from .models.media_models import MediaItem, MediaItemFolder, MediaGroupFolder
 from .models.status import Status
 from .services.media_merger import MediaMerger
 from .api.validators import validate_media_library_config, validate_media_merge_settings
-from app.core.config import settings
+from app.core.settings import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

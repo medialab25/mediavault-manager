@@ -3,7 +3,7 @@ from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from datetime import datetime
 
-from app.core.config import settings
+from app.core.settings import settings
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")

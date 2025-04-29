@@ -5,7 +5,7 @@ from pathlib import Path
 from datetime import datetime
 from contextlib import asynccontextmanager
 
-from app.core.config import settings
+from app.core.settings import settings
 from app.routes import views, system
 from app.api.media.router import router as local_media_router
 from app.scheduler import start_scheduler, stop_scheduler
