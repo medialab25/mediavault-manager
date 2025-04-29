@@ -8,10 +8,12 @@ from rich.table import Table
 app = typer.Typer(add_completion=False)
 media_app = typer.Typer(help="Media management commands")
 system_app = typer.Typer(help="System management commands")
+cache_app = typer.Typer(help="Cache management commands")
 
 # Add the command groups to the main app
 app.add_typer(media_app, name="media")
 app.add_typer(system_app, name="system")
+app.add_typer(cache_app, name="cache")
 
 console = Console()
 
@@ -93,6 +95,20 @@ def health():
     result = asyncio.run(make_request("GET", "system/health"))
     console.print(f"[green]Status:[/green] {result['status']}")
     console.print(f"[green]Timestamp:[/green] {result['timestamp']}")
+
+# Cache commands
+@cache_app.command()
+def list(
+    cache_type: str = typer.Option("all", "--type", "-t", help="Cache type to list [hot|cold|all]")
+):
+    """List cache contents"""
+    if cache_type not in ["hot", "cold", "all"]:
+        console.print("[red]Error:[/red] Cache type must be one of: hot, cold, all")
+        raise typer.Exit(1)
+        
+    console.print(f"[yellow]Listing {cache_type} cache contents...[/yellow]")
+    result = asyncio.run(make_request("GET", f"api/cache/{cache_type}"))
+    console.print(f"[green]Success:[/green] {result['message']}")
 
 if __name__ == "__main__":
     app() 

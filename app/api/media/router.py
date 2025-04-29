@@ -5,7 +5,7 @@ from app.api.media.services.media_server import MediaServer
 from .models.media_models import MediaItem, MediaItemFolder, MediaGroupFolder
 from app.core.status import Status
 from .services.media_merger import MediaMerger
-from .api.validators import validate_media_library_config, validate_media_merge_settings
+from .models.validators import validate_media_library_config, validate_media_merge_settings
 from app.core.settings import settings
 
 logger = logging.getLogger(__name__)
