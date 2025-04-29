@@ -37,6 +37,7 @@ templates = Jinja2Templates(directory="app/templates")
 app.include_router(system.router, prefix="/system")
 app.include_router(local_media_router, prefix="/api/media", tags=["media"])
 app.include_router(cache_router, prefix="/api/cache", tags=["cache"])
+
 @app.get("/")
 async def root(request: Request):
     return templates.TemplateResponse(

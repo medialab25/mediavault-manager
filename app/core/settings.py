@@ -34,12 +34,12 @@ class Settings(BaseSettings):
         "group": "1000"
     }
 
-    # Media Cache settings
+    # Cache settings
     MEDIA_CACHE: Dict[str, str] = {
-        "hot_path": "./test/cache/hot",
-        "cold_path": "./test/cache/cold"
+        "hot_path": "/var/cache/mediavault/hot",
+        "cold_path": "/var/cache/mediavault/cold"
     }
-    
+
     def __init__(self, **data):
         # First load production config as base
         try:
