@@ -1,11 +1,10 @@
 import httpx
 from typing import Optional, Dict, Any
-from app.core.config import settings
 
 class JellyfinClient:
-    def __init__(self):
-        self.base_url = settings.JELLYFIN["url"]
-        self.api_key = settings.JELLYFIN["api_key"]
+    def __init__(self, url: str, api_key: str):
+        self.base_url = url
+        self.api_key = api_key
         self.client = httpx.AsyncClient(
             base_url=self.base_url,
             headers={
@@ -44,12 +43,31 @@ class JellyfinClient:
 
     async def close(self):
         """Close the HTTP client"""
-        await self.client.aclose() 
+        await self.client.aclose()
 
     async def refresh_media(self):
         """Refresh the media library"""
-        response = await self.client.post("/Library/Refresh")
-        if response.status_code == 204:  # No Content
-            return {"status": "success", "message": "Library refresh initiated"}
-        return response.json() if response.content else {"status": "success", "message": "Library refresh initiated"}
-    
+        try:
+            response = await self.client.post("/Library/Refresh")
+            if response.status_code == 204:  # No Content
+                return {"status": "success", "message": "Library refresh initiated"}
+            
+            # If we get here, the status code wasn't 204
+            error_message = response.json() if response.content else "Unknown error"
+            return {
+                "status": "error",
+                "message": f"Failed to refresh media library: HTTP {response.status_code}",
+                "error": error_message
+            }
+        except httpx.HTTPError as e:
+            return {
+                "status": "error",
+                "message": f"Failed to refresh media library: {str(e)}",
+                "error": str(e)
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": "An unexpected error occurred while refreshing media library",
+                "error": str(e)
+            } 

@@ -7,8 +7,7 @@ from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.routes import views, system
-from app.jellyfin.router import router as media_router
-from app.media.endpoints import router as local_media_router
+from app.api.media.router import router as local_media_router
 from app.scheduler import start_scheduler, stop_scheduler
 
 @asynccontextmanager
@@ -35,7 +34,6 @@ templates = Jinja2Templates(directory="app/templates")
 #app.include_router(views.router)
 #app.include_router(tasks.router)
 app.include_router(system.router, prefix="/system")
-app.include_router(media_router)
 app.include_router(local_media_router, prefix="/api/media", tags=["media"])
 
 @app.get("/")

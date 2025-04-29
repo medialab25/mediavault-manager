@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Optional, Dict
 from pathlib import Path
 
-from app.media.models.media_models import MediaGroupFolderList, MediaItem, MediaItemFolder, MediaGroupFolder, ExtendedMediaInfo
+from app.api.media.models.media_models import MediaGroupFolderList, MediaItem, MediaItemFolder, MediaGroupFolder, ExtendedMediaInfo
 
 class MediaDataManager:
     def __init__(self, base_path: str):

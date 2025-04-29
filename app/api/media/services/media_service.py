@@ -1,29 +1,26 @@
 from typing import List
 from ..models.media_models import MediaCacheList, MediaItem, MediaItemFolder, MediaGroupFolder
-from app.jellyfin.client import JellyfinClient
+from app.api.adapters.jellyfin import JellyfinClient
 from app.core.config import settings
 from ._merge_media import merge_libraries
 from ._media_manager import MediaDataManager as MediaManager
+from .media_server import MediaServer
 import logging
 
 logger = logging.getLogger(__name__)
 
 class MediaService:
     def __init__(self):
-        self.jellyfin_client = JellyfinClient()
-        self.media_manager = MediaManager()
+        self.jellyfin_client = JellyfinClient(
+            url=settings.JELLYFIN["url"],
+            api_key=settings.JELLYFIN["api_key"]
+        )
+        self.media_manager = MediaManager(base_path=settings.MEDIA_ROOT)
+        self.media_server = MediaServer(
+            jellyfin_url=settings.JELLYFIN["url"],
+            jellyfin_api_key=settings.JELLYFIN["api_key"]
+        )
         
-    async def refresh_media(self):
-        """Refresh the media library by calling the Media Library API."""
-        try:
-            logger.debug("Calling Jellyfin refresh_media")
-            response = await self.jellyfin_client.refresh_media()
-            logger.debug(f"Jellyfin refresh response: {response}")
-            return {"status": "success", "message": "Media library refresh initiated"}
-        except Exception as e:
-            logger.error(f"Error in refresh_media: {str(e)}", exc_info=True)
-            raise
-
     async def merge_media(self, refresh: bool = False):
         """Merge media files according to the configuration settings.
         
@@ -63,7 +60,7 @@ class MediaService:
             # Refresh media library if requested
             if refresh:
                 logger.debug("Refreshing media library after merge")
-                await self.refresh_media()
+                await self.media_server.refresh_media()
 
             return {"status": "success", "message": "Media merge completed"}
         except Exception as e:
