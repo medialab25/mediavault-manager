@@ -5,6 +5,7 @@ import logging
 from app.api.media.services.media_server import MediaServer
 from .models.media_models import MediaItem, MediaItemFolder, MediaGroupFolder
 from .services.media_service import MediaService
+from .services.media_merger import merge_libraries
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -26,21 +27,23 @@ async def refresh_media():
         logger.error(f"Error during media refresh: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
     
-# @router.post("/merge", status_code=200)
-# async def merge_media(refresh: bool = False):
-#     """Merge the media library by calling the Media Merge API.
-#     
-#     Args:
-#         refresh (bool): If True, refresh the media library after merging. Defaults to False.
-#     """
-#     try:
-#         logger.debug("Starting media merge")
-#         result = await media_service.merge_media(refresh=refresh)
-#         logger.debug(f"Media merge completed: {result}")
-#         return result
-#     except Exception as e:
-#         logger.error(f"Error during media merge: {str(e)}", exc_info=True)
-#         raise HTTPException(status_code=500, detail=str(e))
+@router.post("/merge", status_code=200)
+async def merge_media(refresh: bool = False):
+    """Merge the media library by calling the Media Merge API.
+    
+    Args:
+        refresh (bool): If True, refresh the media library after merging. Defaults to False.
+    """
+    try:
+        logger.debug("Starting media merge")
+        result = await merge_libraries(refresh=refresh)
+        logger.debug(f"Media merge completed: {result}")
+        return result
+    except Exception as e:
+        logger.error(f"Error during media merge: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
 
 # @router.get("/cache/list", status_code=200)
 # async def get_cache_list():

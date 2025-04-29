@@ -2,7 +2,7 @@ from typing import List
 from ..models.media_models import MediaCacheList, MediaItem, MediaItemFolder, MediaGroupFolder
 from app.api.adapters.jellyfin import JellyfinClient
 from app.core.config import settings
-from ._merge_media import merge_libraries
+from .media_merger import merge_libraries
 from ._media_manager import MediaDataManager as MediaManager
 from .media_server import MediaServer
 import logging
