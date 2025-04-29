@@ -1,5 +1,5 @@
 from app.api.adapters.jellyfin import JellyfinClient
-from ..models.status import Status
+from app.core.status import Status
 import logging
 
 logger = logging.getLogger(__name__)

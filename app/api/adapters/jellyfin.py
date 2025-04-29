@@ -1,6 +1,6 @@
 import httpx
 from typing import Optional, Dict, Any
-from app.api.media.models.status import Status
+from app.core.status import Status
 import logging
 
 logger = logging.getLogger(__name__)
