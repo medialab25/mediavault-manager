@@ -1,9 +1,13 @@
 import httpx
 from typing import Optional, Dict, Any
+from app.api.media.models.status import Status
+import logging
+
+logger = logging.getLogger(__name__)
 
 class JellyfinClient:
     def __init__(self, url: str, api_key: str):
-        self.base_url = url
+        self.base_url = url.rstrip('/')
         self.api_key = api_key
         self.client = httpx.AsyncClient(
             base_url=self.base_url,
@@ -50,24 +54,27 @@ class JellyfinClient:
         try:
             response = await self.client.post("/Library/Refresh")
             if response.status_code == 204:  # No Content
-                return {"status": "success", "message": "Library refresh initiated"}
+                return {
+                    "status": Status.SUCCESS,
+                    "message": "Library refresh initiated"
+                }
             
             # If we get here, the status code wasn't 204
             error_message = response.json() if response.content else "Unknown error"
             return {
-                "status": "error",
+                "status": Status.ERROR,
                 "message": f"Failed to refresh media library: HTTP {response.status_code}",
                 "error": error_message
             }
         except httpx.HTTPError as e:
             return {
-                "status": "error",
+                "status": Status.ERROR,
                 "message": f"Failed to refresh media library: {str(e)}",
                 "error": str(e)
             }
         except Exception as e:
             return {
-                "status": "error",
+                "status": Status.ERROR,
                 "message": "An unexpected error occurred while refreshing media library",
                 "error": str(e)
             } 

@@ -50,6 +50,8 @@ def merge(refresh: bool = typer.Option(False, "--refresh", "-r", help="Refresh t
     console.print("[yellow]Merging media library...[/yellow]")
     result = asyncio.run(make_request("POST", f"api/media/merge?refresh={str(refresh).lower()}"))
     console.print(f"[green]Success:[/green] {result['message']}")
+    if refresh and result.get('data', {}).get('refresh'):
+        console.print(f"[green]Refresh Status:[/green] {result['data']['refresh']}")
 
 @media_app.command()
 def hot_cache():

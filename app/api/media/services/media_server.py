@@ -1,4 +1,5 @@
 from app.api.adapters.jellyfin import JellyfinClient
+from ..models.status import Status
 import logging
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ class MediaServer:
         except Exception as e:
             logger.error(f"Error refreshing media library: {str(e)}")
             return {
-                "status": "error",
+                "status": Status.ERROR,
                 "message": f"Failed to refresh media library: {str(e)}",
                 "error": str(e)
             } 

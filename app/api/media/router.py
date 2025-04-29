@@ -4,6 +4,7 @@ import logging
 
 from app.api.media.services.media_server import MediaServer
 from .models.media_models import MediaItem, MediaItemFolder, MediaGroupFolder
+from .models.status import Status
 from .services.media_service import MediaService
 from .services.media_merger import merge_libraries
 from .api.validators import validate_media_library_config, validate_media_merge_settings
@@ -61,13 +62,18 @@ async def merge_media(refresh: bool = False):
         logger.debug(f"Media merge completed: {results}")
         
         # Refresh media if requested
+        refresh_result = None
         if refresh:
-            await media_server.refresh_media()
+            refresh_result = await media_server.refresh_media()
+            logger.debug(f"Media refresh completed: {refresh_result}")
             
         return {
-            "status": "success",
+            "status": Status.SUCCESS,
             "message": "Media merge completed successfully",
-            "results": results
+            "data": {
+                "merge": results,
+                "refresh": refresh_result if refresh else None
+            }
         }
     except Exception as e:
         logger.error(f"Error during media merge: {str(e)}", exc_info=True)
