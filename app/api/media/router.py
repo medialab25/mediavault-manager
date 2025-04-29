@@ -6,7 +6,7 @@ from app.api.media.services.media_server import MediaServer
 from .models.media_models import MediaItem, MediaItemFolder, MediaGroupFolder
 from .services.media_service import MediaService
 from .services.media_merger import merge_libraries
-from .api.validators import validate_media_library_config
+from .api.validators import validate_media_library_config, validate_media_merge_settings
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -38,26 +38,19 @@ async def merge_media(refresh: bool = False):
     try:
         logger.debug("Starting media merge")
         
-        # Get media library config from settings
-        media_library_config = settings.MEDIA_LIBRARY
-        if not media_library_config:
-            raise HTTPException(status_code=500, detail="Media library configuration not found")
-            
-        # Get user and group IDs from media merge settings
-        if "user" not in settings.MEDIA_MERGE or "group" not in settings.MEDIA_MERGE:
-            raise HTTPException(status_code=500, detail="Media merge user/group configuration not found")
+        # Validate settings
+        validate_media_merge_settings(settings.MEDIA_LIBRARY, settings.MEDIA_MERGE)
+        
+        # Get user and group IDs
         user_id = int(settings.MEDIA_MERGE["user"])
         group_id = int(settings.MEDIA_MERGE["group"])
         
-        # Validate media library configuration
-        validate_media_library_config(media_library_config)
-        
         # Call merge_libraries for each media type
         results = {}
-        for media_type, config in media_library_config["source_matrix"].items():
-            result = await merge_libraries(
+        for media_type, config in settings.MEDIA_LIBRARY["source_matrix"].items():
+            result = merge_libraries(
                 media_type=media_type,
-                source_paths=[media_library_config["default_source_path"]],
+                source_paths=[settings.MEDIA_LIBRARY["default_source_path"]],
                 quality_list=config["quality_order"],
                 merged_path=config["merged_path"],
                 user_id=user_id,
@@ -71,7 +64,11 @@ async def merge_media(refresh: bool = False):
         if refresh:
             await media_server.refresh_media()
             
-        return results
+        return {
+            "status": "success",
+            "message": "Media merge completed successfully",
+            "results": results
+        }
     except Exception as e:
         logger.error(f"Error during media merge: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

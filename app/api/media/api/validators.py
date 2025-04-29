@@ -33,4 +33,28 @@ def validate_media_library_config(media_library_config: Dict[str, Any]) -> None:
             raise HTTPException(
                 status_code=500,
                 detail=f"Invalid quality_order or merged_path for {media_type}"
-            ) 
+            )
+
+def validate_media_merge_settings(media_library_config: Dict[str, Any], media_merge_settings: Dict[str, Any]) -> None:
+    """Validate media library and merge settings.
+    
+    Args:
+        media_library_config: The media library configuration dictionary
+        media_merge_settings: The media merge settings dictionary
+        
+    Raises:
+        HTTPException: If the configuration is invalid
+    """
+    if not media_library_config:
+        raise HTTPException(status_code=500, detail="Media library configuration not found")
+        
+    if "user" not in media_merge_settings or "group" not in media_merge_settings:
+        raise HTTPException(status_code=500, detail="Media merge user/group configuration not found")
+        
+    try:
+        int(media_merge_settings["user"])
+        int(media_merge_settings["group"])
+    except ValueError:
+        raise HTTPException(status_code=500, detail="Invalid user or group ID in media merge settings")
+        
+    validate_media_library_config(media_library_config) 
