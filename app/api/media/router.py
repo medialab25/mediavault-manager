@@ -1,12 +1,10 @@
 from fastapi import APIRouter, HTTPException
-from typing import List
 import logging
 
 from app.api.media.services.media_server import MediaServer
 from .models.media_models import MediaItem, MediaItemFolder, MediaGroupFolder
 from .models.status import Status
-from .services.media_service import MediaService
-from .services.media_merger import merge_libraries
+from .services.media_merger import MediaMerger
 from .api.validators import validate_media_library_config, validate_media_merge_settings
 from app.core.config import settings
 
@@ -30,7 +28,7 @@ async def refresh_media():
         raise HTTPException(status_code=500, detail=str(e))
     
 @router.post("/merge", status_code=200)
-async def merge_media(refresh: bool = False):
+async def merge_media(refresh: bool = False) -> dict:
     """Merge the media library by calling the Media Merge API.
     
     Args:
@@ -46,16 +44,17 @@ async def merge_media(refresh: bool = False):
         user_id = int(settings.MEDIA_MERGE["user"])
         group_id = int(settings.MEDIA_MERGE["group"])
         
+        # Create MediaMerger instance
+        media_merger = MediaMerger(user_id=user_id, group_id=group_id)
+        
         # Call merge_libraries for each media type
         results = {}
         for media_type, config in settings.MEDIA_LIBRARY["source_matrix"].items():
-            result = merge_libraries(
+            result = media_merger.merge_libraries(
                 media_type=media_type,
                 source_paths=[settings.MEDIA_LIBRARY["default_source_path"]],
                 quality_list=config["quality_order"],
-                merged_path=config["merged_path"],
-                user_id=user_id,
-                group_id=group_id
+                merged_path=config["merged_path"]
             )
             results[media_type] = result
         
