@@ -18,11 +18,13 @@
         "source_matrix": {
             "movies": {
                 "prefix": "movies",
+                "media_type": "movie",
                 "quality_order": ["uhd", "hd"],
                 "merged_path": "/srv/storage/media/movies-merged"
             },
             "tv": {
                 "prefix": "tv",
+                "media_type": "tv",
                 "quality_order": ["uhd", "hd"],
                 "merged_path": "/srv/storage/media/tv-merged"
             }

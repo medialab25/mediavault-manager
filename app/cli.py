@@ -111,5 +111,47 @@ def list():
         console.print(f"[red]Error:[/red] {str(e)}")
         raise typer.Exit(1)
 
+@cache_app.command()
+def find(
+    title: str = typer.Argument(..., help="Title to search for"),
+    season: Optional[int] = typer.Option(None, "--season", "-s", help="Season number"),
+    episode: Optional[int] = typer.Option(None, "--episode", "-e", help="Episode number"),
+    group: Optional[str] = typer.Option(None, "--group", "-g", help="Release group"),
+    media_type: Optional[str] = typer.Option(None, "--media-type", "-t", help="Media type (tv,movie)"),
+    search_cache: bool = typer.Option(False, "--search-cache", "-c", help="Search in cache")
+):
+    """Find media in cache by title and optional parameters"""
+    try:
+        console.print(f"[yellow]Searching for '{title}'...[/yellow]")
+        
+        # Build query parameters
+        params = {"title": title}
+        if season is not None:
+            params["season"] = season
+        if episode is not None:
+            params["episode"] = episode
+        if group is not None:
+            params["group"] = group 
+        if media_type is not None:
+            params["media_type"] = media_type
+        if search_cache:
+            params["search_cache"] = "true"
+            
+        # Convert params to query string
+        query_string = "&".join(f"{k}={v}" for k, v in params.items())
+        result = asyncio.run(make_request("GET", f"api/cache/find?{query_string}"))
+        
+        console.print(f"[green]Success:[/green] {result['message']}")
+        
+        # Display the data if it exists
+        if 'data' in result:
+            console.print("\n[cyan]Search Results:[/cyan]")
+            console.print_json(data=result['data'])
+        else:
+            console.print("[yellow]No results found[/yellow]")
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {str(e)}")
+        raise typer.Exit(1)
+
 if __name__ == "__main__":
     app() 
