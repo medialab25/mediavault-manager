@@ -1,13 +1,33 @@
 # Management of media using the file_manager class
 from pathlib import Path
-from app.api.common.models.media_models import MediaGroupFolder, MediaGroupFolderList
+from app.api.common.models.media_models import ExtendedMediaInfo, MediaGroupFolder, MediaGroupFolderList, MediaItem, MediaItemFolder
 from app.core.config import Config
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
+import re
 
 class MediaManager:
     def __init__(self, config: dict[str, Any]):
         self.media_base_path = Path(config.get("default_source_path"))
         self.config = config
+
+    def _parse_episode_info(self, filename: str) -> Tuple[Optional[int], Optional[int]]:
+        """Parse season and episode numbers from filename.
+        
+        Expected format: "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}"
+        Example: "Breaking Bad - S01E02 - Cat's in the Bag... 2160p"
+        
+        Returns:
+            Tuple[Optional[int], Optional[int]]: Season and episode numbers, or None if not found
+        """
+        pattern = r'.*?S(\d{2})E(\d{2}).*'
+        match = re.match(pattern, filename, re.IGNORECASE)
+        
+        if match:
+            season = int(match.group(1))
+            episode = int(match.group(2))
+            return season, episode
+        
+        return None, None
 
     # Get all media group folders using the source_matrix in the config
     def get_media_group_folders_slim(self) -> list[str]:
@@ -38,16 +58,61 @@ class MediaManager:
                         media_type=media_type,
                         media_prefix=media_prefix,
                         quality=quality,
-                        path=str(group_folder)
+                        path=str(group_folder),
+                        media_folder_items=[]
                     ))
                     
         return MediaGroupFolderList(groups=media_groups)
 
-    def find_media(self, title: str, season: Optional[int] = None, episode: Optional[int] = None, group: Optional[str] = None, media_type: Optional[str] = None, search_cache: bool = False) -> list[str]:
+
+    def get_media_group_folders_with_items(self, add_extended_info: bool = False) -> MediaGroupFolderList:
+        """Get all media group folders with items based on the source matrix configuration.
+        
+        Returns:
+            MediaGroupFolderList: List of media group folder paths with items
+        """
+        media_groups = self.get_media_group_folders()
+        for media_group in media_groups.groups:
+            path = media_group.path
+            
+            # Get the media items from the folder
+            media_folder_items = []
+            for folder in Path(path).glob("*"):
+                if folder.is_dir():
+                    media_folder_item = MediaItemFolder(
+                        title=folder.name,
+                        media_type=media_group.media_type,
+                        path=str(folder),
+                        items=[]
+                    )
+                    media_folder_items.append(media_folder_item)
+
+                    # Get all files in folder
+                    for file in folder.glob("**/*"):
+                        extended = None
+                        if add_extended_info:
+                            extended = ExtendedMediaInfo(
+                                size=file.stat().st_size,
+                                created_at=file.stat().st_ctime,
+                                updated_at=file.stat().st_mtime,
+                                metadata=None)
+
+                        season, episode = self._parse_episode_info(file.name)
+                        media_folder_item.items.append(MediaItem(
+                            path=str(file),
+                            season=season,
+                            episode=episode,
+                            extended=extended))
+                            
+            media_group.media_folder_items = media_folder_items
+        return media_groups
+    
+
+    def find_media(self, title: str, season: Optional[int] = None, episode: Optional[int] = None, media_prefix: Optional[str] = None, quality: Optional[str] = None, media_type: Optional[str] = None, search_cache: bool = False) -> list[str]:
         """Find media in cache by title and optional parameters"""
 
         # Get all media group folders
-        media_groups = self.get_media_group_folders()
+        media_groups = self.get_media_group_folders_with_items()
 
         # Search for the media in the cache
         for media_group in media_groups:
@@ -55,7 +120,12 @@ class MediaManager:
             if media_type and media_type != media_group.media_type:
                 continue
 
-            #for file in Path(media_group.path).glob("**/*"):
-            #    if file.is_file():
-            #        if title in file.name:
-            #            return [str(file)]
+            # Check if the media_prefix matches
+            if media_prefix and media_prefix != media_group.media_prefix:
+                continue
+
+            # Check if the quality matches
+            if quality and quality != media_group.quality:
+                continue
+
+            # Get the media items 

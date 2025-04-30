@@ -10,17 +10,19 @@ class ExtendedMediaInfo(BaseModel):
     metadata: Optional[dict] = None
 
 class MediaItem(BaseModel):
-    filename: str
+    path: str
     season: Optional[int] = None
     episode: Optional[int] = None
     extended: Optional[ExtendedMediaInfo] = None
     
     class Config:
         from_attributes = True
-
+   
 # Movie/TVShow/Anime/Documentary/Music
 class MediaItemFolder(BaseModel):
     title: str
+    media_type: str
+    path: str
     items: List[MediaItem]
 
     class Config:
@@ -29,8 +31,10 @@ class MediaItemFolder(BaseModel):
 # tv-hd, movies-uhd, anime-4k, documentaries-4k
 class MediaGroupFolder(BaseModel):
     media_type: str     # movies, tv
+    media_prefix: str  # movies, tv
     quality: str        # 4k, uhd, hd, sd
     path: str           # /media/movies/4k, /media/tv/4k
+    media_folder_items: List[MediaItemFolder]
     
     class Config:
         from_attributes = True

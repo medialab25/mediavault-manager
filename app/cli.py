@@ -116,7 +116,8 @@ def find(
     title: str = typer.Argument(..., help="Title to search for"),
     season: Optional[int] = typer.Option(None, "--season", "-s", help="Season number"),
     episode: Optional[int] = typer.Option(None, "--episode", "-e", help="Episode number"),
-    group: Optional[str] = typer.Option(None, "--group", "-g", help="Release group"),
+    media_prefix: Optional[str] = typer.Option(None, "--media-prefix", "-p", help="Media prefix"),
+    quality: Optional[str] = typer.Option(None, "--quality", "-q", help="Quality"),
     media_type: Optional[str] = typer.Option(None, "--media-type", "-t", help="Media type (tv,movie)"),
     search_cache: bool = typer.Option(False, "--search-cache", "-c", help="Search in cache")
 ):
@@ -130,8 +131,10 @@ def find(
             params["season"] = season
         if episode is not None:
             params["episode"] = episode
-        if group is not None:
-            params["group"] = group 
+        if media_prefix is not None:
+            params["media_prefix"] = media_prefix
+        if quality is not None:
+            params["quality"] = quality
         if media_type is not None:
             params["media_type"] = media_type
         if search_cache:
