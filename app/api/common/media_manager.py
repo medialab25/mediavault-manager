@@ -72,7 +72,16 @@ class MediaManager:
             MediaGroupFolderList: List of media group folder paths with items
         """
         media_groups = self.get_media_group_folders()
-        for media_group in media_groups.groups:
+        self.populate_media_group_folders_with_items(media_groups, add_extended_info)
+        return media_groups
+    
+    def populate_media_group_folders_with_items(self, media_group_folders: MediaGroupFolderList, add_extended_info: bool = False) -> None:
+        """Get all media group folders with items based on the source matrix configuration.
+        
+        Returns:
+            MediaGroupFolderList: List of media group folder paths with items
+        """
+        for media_group in media_group_folders.groups:
             path = media_group.path
             
             # Get the media items from the folder
@@ -105,17 +114,17 @@ class MediaManager:
                             extended=extended))
                             
             media_group.media_folder_items = media_folder_items
-        return media_groups
     
 
     def find_media(self, title: str, season: Optional[int] = None, episode: Optional[int] = None, media_prefix: Optional[str] = None, quality: Optional[str] = None, media_type: Optional[str] = None, search_cache: bool = False) -> list[str]:
         """Find media in cache by title and optional parameters"""
 
         # Get all media group folders
-        media_groups = self.get_media_group_folders_with_items()
+        media_groups = self.get_media_group_folders()
 
+        filtered_media_groups = []
         # Search for the media in the cache
-        for media_group in media_groups:
+        for media_group in media_groups.groups:
             # Use the media_type from the MediaGroupFolder object
             if media_type and media_type != media_group.media_type:
                 continue
@@ -128,4 +137,8 @@ class MediaManager:
             if quality and quality != media_group.quality:
                 continue
 
-            # Get the media items 
+            # Get the media items
+            filtered_media_groups.append(media_group)
+
+        # return the media group names
+        return [media_group.media_prefix for media_group in filtered_media_groups]
