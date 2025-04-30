@@ -22,7 +22,8 @@ class FolderOperationStatus(Enum):
 class MergeLibrariesResult:
     added_folders: Dict[str, str]  # folder_name -> quality
     updated_folders: Dict[str, str]  # folder_name -> quality
-    deleted_folders: List[str]
+    deleted_folders: Dict[str, str]  # folder_name -> quality
+    skipped_folders: Dict[str, str]  # folder_name -> quality
     status: FolderOperationStatus
 
 class MediaMerger:
@@ -32,16 +33,16 @@ class MediaMerger:
         self.merged_folders = {}  # Dictionary to track merged folders and their quality
         self.added_folders = {}  # Dictionary to track added folders and their quality
         self.updated_folders = {}  # Dictionary to track updated folders and their quality
-        self.deleted_folders = []  # List to track deleted folders
-        self.skipped_folders = []  # List to track skipped folders
+        self.deleted_folders = {}  # Dictionary to track deleted folders and their quality
+        self.skipped_folders = {}  # Dictionary to track skipped folders and their quality
 
     def merge_libraries(self, media_type: str, source_paths: list[str], quality_list: list[str], merged_path: str) -> MergeLibrariesResult:
         success = True
         self.merged_folders = {}  # Reset merged folders
         self.added_folders = {}  # Reset added folders
         self.updated_folders = {}  # Reset updated folders
-        self.deleted_folders = []  # Reset deleted folders
-        self.skipped_folders = []  # Reset skipped folders
+        self.deleted_folders = {}  # Reset deleted folders
+        self.skipped_folders = {}  # Reset skipped folders
 
         for source_path in source_paths:
             for quality in quality_list:
@@ -58,13 +59,15 @@ class MediaMerger:
         for folder in os.listdir(merged_path):
             if folder not in self.merged_folders:
                 print(f"Removing folder {folder} from {merged_path} because it is not in merged_folders")
+                quality = self.get_folder_quality_flags(os.path.join(merged_path, folder), quality_list)
                 shutil.rmtree(os.path.join(merged_path, folder))
-                self.deleted_folders.append(folder)
+                self.deleted_folders[folder] = quality if quality else "unknown"
 
         return MergeLibrariesResult(
             added_folders=self.added_folders,
             updated_folders=self.updated_folders,
             deleted_folders=self.deleted_folders,
+            skipped_folders=self.skipped_folders,
             status=FolderOperationStatus.SUCCESS if success else FolderOperationStatus.FAILED
         )
 
@@ -98,7 +101,7 @@ class MediaMerger:
             existing_quality = self.merged_folders[folder]
             if quality_list.index(existing_quality) <= quality_list.index(quality):
                 print(f"Folder {folder} already merged with {existing_quality} (better or equal to {quality}), skipping")
-                self.skipped_folders.append(folder)
+                self.skipped_folders[folder] = existing_quality
                 return True
             else:
                 print(f"Folder {folder} already merged with {existing_quality} (worse than {quality}), updating")
@@ -110,7 +113,7 @@ class MediaMerger:
                 if quality_list.index(current_quality) == quality_list.index(quality):
                     print(f"Folder {folder} already merged with {current_quality} (equal to {quality}), skipping")
                     self.merged_folders[folder] = quality
-                    self.skipped_folders.append(folder)
+                    self.skipped_folders[folder] = current_quality
                     return True
                 else:
                     print(f"Folder {folder} already merged with {current_quality} (worse than {quality}), updating")
