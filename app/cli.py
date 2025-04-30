@@ -4,6 +4,8 @@ import asyncio
 from typing import Optional
 from rich.console import Console
 from rich.table import Table
+from app.core.config import Config
+from app.api.common.media_manager import MediaManager
 
 app = typer.Typer(add_completion=False)
 media_app = typer.Typer(help="Media management commands")
@@ -80,12 +82,6 @@ def merge(
     if refresh and result.get('data', {}).get('refresh'):
         console.print(f"[green]Refresh Status:[/green] {result['data']['refresh']}")
 
-@media_app.command()
-def hot_cache():
-    """Get the hot cache status"""
-    console.print("[yellow]Getting hot cache status...[/yellow]")
-    result = asyncio.run(make_request("GET", "api/media/cache/hot"))
-    console.print(f"[green]Success:[/green] {result['message']}")
 
 # System commands
 @system_app.command()
@@ -98,24 +94,22 @@ def health():
 
 # Cache commands
 @cache_app.command()
-def list(
-    cache_type: str = typer.Option("all", "--type", "-t", help="Cache type to list [hot|cold|all]")
-):
-    """List cache contents"""
-    if cache_type not in ["hot", "cold", "all"]:
-        console.print("[red]Error:[/red] Cache type must be one of: hot, cold, all")
-        raise typer.Exit(1)
-        
-    console.print(f"[yellow]Listing {cache_type} cache contents...[/yellow]")
-    result = asyncio.run(make_request("GET", f"api/cache/{cache_type}"))
-    console.print(f"[green]Success:[/green] {result['message']}")
-
-@cache_app.command()
-def list_all():
+def list():
     """List all cache contents"""
-    console.print("[yellow]Listing all cache contents...[/yellow]")
-    result = asyncio.run(make_request("GET", "api/cache/list"))
-    console.print(f"[green]Success:[/green] {result['message']}")
+    try:
+        console.print("[yellow]Listing all cache contents...[/yellow]")
+        result = asyncio.run(make_request("GET", "api/cache/list"))
+        console.print(f"[green]Success:[/green] {result['message']}")
+        
+        # Display the data if it exists
+        if 'data' in result:
+            console.print("\n[cyan]Cache Data:[/cyan]")
+            console.print_json(data=result['data'])
+        else:
+            console.print("[yellow]No data returned[/yellow]")
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {str(e)}")
+        raise typer.Exit(1)
 
 if __name__ == "__main__":
     app() 

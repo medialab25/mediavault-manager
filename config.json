@@ -17,21 +17,17 @@
         "default_source_path": "/srv/storage/media",
         "source_matrix": {
             "movies": {
+                "prefix": "movies",
                 "quality_order": ["uhd", "hd"],
                 "merged_path": "/srv/storage/media/movies-merged"
             },
             "tv": {
+                "prefix": "tv",
                 "quality_order": ["uhd", "hd"],
-                "merged_path": "/srv/storage/media/movies-merged"
+                "merged_path": "/srv/storage/media/tv-merged"
             }
-        }
-    },
-    "MEDIA_CACHE": {
+        },
         "cache_path": "/srv/disks/media-ssd/media",
-        "storage_paths": [
-            "/srv/storage/media",
-            "/srv/storage/media2",
-            "/srv/storage/media3"
-        ]
+        "cache_shadow_path": "/srv/storage/media/media-shadow-cache"
     }
 } 

@@ -62,30 +62,6 @@ class CacheManager:
 
         return groups
 
-    def get_hot_cache(self) -> CacheContents:
-        """Get the contents of the hot cache."""
-        groups = self._scan_cache_directory(self.cache_path)
-        total_size = sum(group.total_size for group in groups)
-        total_items = sum(group.item_count for group in groups)
-        
-        return CacheContents(
-            groups=groups,
-            total_size=total_size,
-            total_items=total_items
-        )
-
-    def get_cold_cache(self) -> CacheContents:
-        """Get the contents of the cold cache."""
-        # For now, return empty cache contents since we're using a single cache
-        return CacheContents(
-            groups=[],
-            total_size=0,
-            total_items=0
-        )
-
     def get_all_cache(self) -> Dict[str, CacheContents]:
-        """Get the contents of both hot and cold caches."""
-        return {
-            "hot_cache": self.get_hot_cache(),
-            "cold_cache": self.get_cold_cache()
-        } 
+        """Get all cache contents."""
+        

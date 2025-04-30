@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 import logging
 
 from app.api.media.services.media_server import MediaServer
-from .models.media_models import MediaItem, MediaItemFolder, MediaGroupFolder
+from app.api.common.models.media_models import MediaItem, MediaItemFolder, MediaGroupFolder
 from app.core.status import Status
 from .services.media_merger import MediaMerger
 from .models.validators import validate_media_library_config, validate_media_merge_settings
@@ -50,13 +50,14 @@ async def merge_media(refresh: bool = False) -> dict:
         # Call merge_libraries for each media type
         results = {}
         for media_type, config in settings.MEDIA_LIBRARY["source_matrix"].items():
-            result = media_merger.merge_libraries(
-                media_type=media_type,
-                source_paths=[settings.MEDIA_LIBRARY["default_source_path"]],
-                quality_list=config["quality_order"],
-                merged_path=config["merged_path"]
-            )
-            results[media_type] = result
+            if config.get("merged_path"):
+                result = media_merger.merge_libraries(
+                    media_type=config.get("prefix", media_type),
+                    source_paths=[settings.MEDIA_LIBRARY["default_source_path"]],
+                    quality_list=config["quality_order"],
+                    merged_path=config["merged_path"]
+                )
+                results[media_type] = result
         
         logger.debug(f"Media merge completed: {results}")
         

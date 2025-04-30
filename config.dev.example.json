@@ -1,31 +1,31 @@
 {
     "PROJECT_NAME": "MediaVault Manager",
     "VERSION": "0.1.0",
-    "DESCRIPTION": "MediaVault Management System",
+    "DESCRIPTION": "MediaVault Management System (Development)",
     "MEDIA_ROOT": "media",
     "ALLOWED_EXTENSIONS": ["jpg", "jpeg", "png", "gif", "mp4", "mp3"],
     "MAX_CONTENT_LENGTH": 16777216,
     "JELLYFIN": {
-        "url": "http://192.168.10.20",
-        "api_key": "dc8ede37692c47f08322f09e711840fb"
+        "url": "http://localhost:8096",
+        "api_key": "your-dev-api-key-here"
     },
     "MEDIA_MERGE": {
         "user": "1000",
         "group": "1000"
     },
     "MEDIA_LIBRARY": {
-        "default_source_path": "/srv/storage/media",
+        "default_source_path": "./media",
         "source_matrix": {
             "movies": {
                 "quality_order": ["uhd", "hd"],
-                "merged_path": "/srv/storage/media/movies-merged"
+                "merged_path": "./media/movies-merged"
             },
             "tv": {
                 "quality_order": ["uhd", "hd"],
-                "merged_path": "/srv/storage/media/tv-merged"
+                "merged_path": "./media/tv-merged"
             }
         },
-        "cache_path": "/srv/disks/media-ssd/media",
-        "cache_shadow_path": "/srv/storage/media/media-shadow-cache"
+        "cache_path": "./media/cache",
+        "cache_shadow_path": "./media/media-shadow-cache"
     }
 } 

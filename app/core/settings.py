@@ -53,16 +53,16 @@ class Settings(BaseSettings):
         
         # Then override with dev config if in development mode
         env = os.getenv("ENV", "dev")
-        if env == "dev":
-            try:
-                with open("config.dev.json", 'r') as f:
-                    dev_config = json.load(f)
-                    # Deep merge the configurations
-                    self._deep_merge(data, dev_config)
-            except FileNotFoundError:
-                print("Warning: Development configuration file config.dev.json not found")
-            except json.JSONDecodeError:
-                print("Warning: Invalid JSON in development configuration file config.dev.json")
+        # if env == "dev":
+        #     try:
+        #         with open("config.dev.json", 'r') as f:
+        #             dev_config = json.load(f)
+        #             # Deep merge the configurations
+        #             self._deep_merge(data, dev_config)
+        #     except FileNotFoundError:
+        #         print("Warning: Development configuration file config.dev.json not found")
+        #     except json.JSONDecodeError:
+        #         print("Warning: Invalid JSON in development configuration file config.dev.json")
         
         super().__init__(**data)
 
