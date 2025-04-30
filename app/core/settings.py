@@ -35,9 +35,9 @@ class Settings(BaseSettings):
     }
 
     # Cache settings
-    MEDIA_CACHE: Dict[str, str] = {
-        "hot_path": "/var/cache/mediavault/hot",
-        "cold_path": "/var/cache/mediavault/cold"
+    MEDIA_CACHE: Dict[str, Any] = {
+        "cache_path": "/srv/disks/media-ssd/media",
+        "storage_paths": []
     }
 
     def __init__(self, **data):

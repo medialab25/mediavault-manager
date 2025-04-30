@@ -27,7 +27,11 @@
         }
     },
     "MEDIA_CACHE": {
-        "hot_path": "/srv/disks/media-ssd/media",
-        "cold_path": "/srv/storage/media"
+        "cache_path": "/srv/disks/media-ssd/media",
+        "storage_paths": [
+            "/srv/storage/media",
+            "/srv/storage/media2",
+            "/srv/storage/media3"
+        ]
     }
 } 

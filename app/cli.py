@@ -110,5 +110,12 @@ def list(
     result = asyncio.run(make_request("GET", f"api/cache/{cache_type}"))
     console.print(f"[green]Success:[/green] {result['message']}")
 
+@cache_app.command()
+def list_all():
+    """List all cache contents"""
+    console.print("[yellow]Listing all cache contents...[/yellow]")
+    result = asyncio.run(make_request("GET", "api/cache/list"))
+    console.print(f"[green]Success:[/green] {result['message']}")
+
 if __name__ == "__main__":
     app() 

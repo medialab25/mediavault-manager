@@ -10,8 +10,8 @@ router = APIRouter()
 
 # Initialize cache manager with settings
 cache_manager = CacheManager(
-    hot_cache_path=settings.MEDIA_CACHE["hot_path"],
-    cold_cache_path=settings.MEDIA_CACHE["cold_path"]
+    cache_path=settings.MEDIA_CACHE["cache_path"],
+    storage_paths=settings.MEDIA_CACHE["storage_paths"]
 )
 
 @router.get("/hot", status_code=200)

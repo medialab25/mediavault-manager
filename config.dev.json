@@ -27,7 +27,12 @@
         }
     },
     "MEDIA_CACHE": {
-        "hot_path": "./test/cache/hot",
-        "cold_path": "./test/cache/cold"
+        "cache_path": "./test/cache-data/media-cache",
+        "cache_shadow_path": "./test/cache-data/media-cache-shadow",
+        "storage_paths": [
+            "./test/media",
+            "./test/media2",
+            "./test/media3"
+        ]
     }
 } 

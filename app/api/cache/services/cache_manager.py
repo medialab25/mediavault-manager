@@ -6,16 +6,16 @@ from pathlib import Path
 from app.api.cache.models.cache_models import CacheItem, CacheGroup, CacheContents
 
 class CacheManager:
-    def __init__(self, hot_cache_path: str, cold_cache_path: str):
+    def __init__(self, cache_path: str, storage_paths: List[str]):
         """
-        Initialize CacheManager with cache paths.
+        Initialize CacheManager with cache path and storage paths.
         
         Args:
-            hot_cache_path (str): Path to the hot cache directory
-            cold_cache_path (str): Path to the cold cache directory
+            cache_path (str): Path to the cache directory
+            storage_paths (List[str]): List of storage paths to monitor
         """
-        self.hot_cache_path = Path(hot_cache_path)
-        self.cold_cache_path = Path(cold_cache_path)
+        self.cache_path = Path(cache_path)
+        self.storage_paths = [Path(path) for path in storage_paths]
 
     def _get_file_info(self, file_path: Path) -> Dict:
         """Get information about a file."""
@@ -64,7 +64,7 @@ class CacheManager:
 
     def get_hot_cache(self) -> CacheContents:
         """Get the contents of the hot cache."""
-        groups = self._scan_cache_directory(self.hot_cache_path)
+        groups = self._scan_cache_directory(self.cache_path)
         total_size = sum(group.total_size for group in groups)
         total_items = sum(group.item_count for group in groups)
         
@@ -76,14 +76,11 @@ class CacheManager:
 
     def get_cold_cache(self) -> CacheContents:
         """Get the contents of the cold cache."""
-        groups = self._scan_cache_directory(self.cold_cache_path)
-        total_size = sum(group.total_size for group in groups)
-        total_items = sum(group.item_count for group in groups)
-        
+        # For now, return empty cache contents since we're using a single cache
         return CacheContents(
-            groups=groups,
-            total_size=total_size,
-            total_items=total_items
+            groups=[],
+            total_size=0,
+            total_items=0
         )
 
     def get_all_cache(self) -> Dict[str, CacheContents]:
