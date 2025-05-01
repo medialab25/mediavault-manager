@@ -5,11 +5,13 @@ import logging
 from typing import Optional, Dict
 
 from app.api.managers.cache_manager import CacheManager
+from app.api.managers.media_query import MediaQuery
+from app.api.models.cache_models import CacheStatusList
 from app.core.status import Status
 from app.core.settings import settings
 from app.api.models.response import APIResponse
 from app.api.managers.media_manager import MediaManager
-from app.api.models.media_models import MediaDbType
+from app.api.models.media_models import MediaDbType, MediaItemGroupList
 from app.api.models.search_request import SearchRequest
 
 logger = logging.getLogger(__name__)
@@ -22,13 +24,7 @@ async def list_cache():
     """List all cache contents"""
     try:
         logger.debug("Listing cache contents")
-        # Use the media manager to search cache
-        result = media_manager.search_media(
-            request=SearchRequest(
-                query="",
-                db_type=[MediaDbType.CACHE]
-            )
-        )
+        result = cache_manager.list_cache()
         return APIResponse.success(
             data=result,
             message="Cache contents retrieved successfully"

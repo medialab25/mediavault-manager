@@ -50,3 +50,6 @@ class MediaItem(BaseModel):
 class MediaItemGroup(BaseModel):
     items: List[MediaItem]
 
+class MediaItemGroupList(BaseModel):
+    groups: List[MediaItemGroup]
+
