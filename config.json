@@ -29,7 +29,12 @@
                 "merged_path": "/srv/storage/media/tv-merged"
             }
         },
+        "media_export_paths": [
+            "/srv/storage/media/movies-merged",
+            "/srv/storage/media/tv-merged"
+        ],
         "cache_path": "/srv/disks/media-ssd/media",
-        "cache_shadow_path": "/srv/storage/media/media-shadow-cache"
+        "cache_shadow_path": "/srv/storage/media/media-shadow-cache",
+        "cache_pending_path": "/srv/storage/media/media-pending-cache"
     }
 } 

@@ -1,5 +1,12 @@
+from enum import Enum
 from typing import List, Optional
 from pydantic import BaseModel
+
+# enum for the db types, MEDIA, CACHE, PENDING
+class MediaDbType(Enum):
+    MEDIA = "media"
+    CACHE = "cache"
+    PENDING = "pending"
 
 class ExtendedMediaInfo(BaseModel):
     size: int
@@ -31,6 +38,7 @@ class MediaGroupFolderList(BaseModel):
 
 class MediaItem(BaseModel):
     id: str
+    db_type: MediaDbType
     full_path: str
     media_type: str
     quality: str
@@ -41,3 +49,4 @@ class MediaItem(BaseModel):
 
 class MediaItemGroup(BaseModel):
     items: List[MediaItem]
+

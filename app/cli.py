@@ -4,6 +4,7 @@ import asyncio
 from typing import Optional
 from rich.console import Console
 from rich.table import Table
+from app.api.models.media_models import MediaDbType
 from app.core.config import Config
 from app.api.managers.media_manager import MediaManager
 from app.core.status import Status
@@ -108,7 +109,8 @@ def search(
     id: Optional[str] = typer.Option(None, "--id", "-i", help="Media ID to search for"),
     add_extended_info: bool = typer.Option(False, "--extended-info", "-e", help="Add extended info"),
     season: Optional[int] = typer.Option(None, "--season", "-s", help="Season number"),
-    episode: Optional[int] = typer.Option(None, "--episode", "-e", help="Episode number")
+    episode: Optional[int] = typer.Option(None, "--episode", "-e", help="Episode number"),
+    db_type: Optional[str] = typer.Option("media", "--db-type", "-d", help="Database types (comma-separated: media,cache,pending)")
 ):
     """Search for media using the search request endpoint"""
     try:
@@ -137,6 +139,15 @@ def search(
             params["episode"] = episode
         if add_extended_info:
             params["add_extended_info"] = add_extended_info
+        if db_type is not None:
+            # Validate each db_type
+            for t in db_type.split(","):
+                try:
+                    MediaDbType(t.strip())
+                except ValueError:
+                    console.print(f"[red]Error:[/red] Invalid database type '{t}'. Valid types are: {', '.join(t.value for t in MediaDbType)}")
+                    raise typer.Exit(1)
+            params["db_type"] = db_type
             
         # Convert params to query string
         query_string = "&".join(f"{k}={v}" for k, v in params.items())
@@ -179,51 +190,6 @@ def list():
             console.print_json(data=result['data'])
         else:
             console.print("[yellow]No data returned[/yellow]")
-    except Exception as e:
-        console.print(f"[red]Error:[/red] {str(e)}")
-        raise typer.Exit(1)
-
-@cache_app.command()
-def find(
-    title: str = typer.Argument(..., help="Title to search for"),
-    season: Optional[int] = typer.Option(None, "--season", "-s", help="Season number"),
-    episode: Optional[int] = typer.Option(None, "--episode", "-e", help="Episode number"),
-    media_prefix: Optional[str] = typer.Option(None, "--media-prefix", "-p", help="Media prefix"),
-    quality: Optional[str] = typer.Option(None, "--quality", "-q", help="Quality"),
-    media_type: Optional[str] = typer.Option(None, "--media-type", "-t", help="Media type (tv,movie)"),
-    search_cache: bool = typer.Option(False, "--search-cache", "-c", help="Search in cache")
-):
-    """Find media in cache by title and optional parameters"""
-    try:
-        console.print(f"[yellow]Searching for '{title}'...[/yellow]")
-        
-        # Build query parameters
-        params = {"title": title}
-        if season is not None:
-            params["season"] = season
-        if episode is not None:
-            params["episode"] = episode
-        if media_prefix is not None:
-            params["media_prefix"] = media_prefix
-        if quality is not None:
-            params["quality"] = quality
-        if media_type is not None:
-            params["media_type"] = media_type
-        if search_cache:
-            params["search_cache"] = "true"
-            
-        # Convert params to query string
-        query_string = "&".join(f"{k}={v}" for k, v in params.items())
-        result = asyncio.run(make_request("GET", f"api/cache/find?{query_string}"))
-        
-        console.print(f"[green]Success:[/green] {result['message']}")
-        
-        # Display the data if it exists
-        if result.get('data'):
-            console.print("\n[cyan]Search Results:[/cyan]")
-            console.print_json(data=result['data'])
-        else:
-            console.print("[yellow]No results found[/yellow]")
     except Exception as e:
         console.print(f"[red]Error:[/red] {str(e)}")
         raise typer.Exit(1)
