@@ -49,3 +49,21 @@ async def add_to_cache(data: Dict = Body(...)):
     except Exception as e:
         logger.error(f"Error adding to cache: {str(e)}", exc_info=True)
         raise APIResponse.error(str(e))
+
+@router.post("/remove", status_code=200)
+async def remove_from_cache(data: Dict = Body(...)):
+    """Remove items from cache based on search criteria"""
+    try:
+        dry_run = data.pop("dry_run", False)
+        logger.debug(f"Removing items from cache with data: {data} (dry_run: {dry_run})")
+        
+        # Use the media manager to search and add to cache
+        result = cache_manager.remove_from_cache(data, dry_run=dry_run)
+            
+        return APIResponse.success(
+            data=result,
+            message="Items would be removed from cache successfully" if dry_run else "Items removed from cache successfully"
+        )
+    except Exception as e:
+        logger.error(f"Error removing from cache: {str(e)}", exc_info=True)
+        raise APIResponse.error(str(e))

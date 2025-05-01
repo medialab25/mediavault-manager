@@ -23,12 +23,8 @@ class SyncManager:
             logger.debug(f"Starting sync{' (dry run)' if dry_run else ''}")
             cache_sync_result = self.cache_manager.sync_cache(dry_run=dry_run)
 
-            return MediaItemGroupDict(
-                groups={
-                    "pending": cache_sync_result,
-                    "cache": MediaItemGroup(items=[])
-                }
-            )
+            return cache_sync_result
+
         except Exception as e:
             logger.error(f"Error in sync: {str(e)}", exc_info=True)
             raise e

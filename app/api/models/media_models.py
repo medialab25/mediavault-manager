@@ -7,7 +7,6 @@ class MediaDbType(Enum):
     MEDIA = "media"
     CACHE = "cache"
     PENDING = "pending"
-    SHADOW = "shadow"
 
 class ExtendedMediaInfo(BaseModel):
     size: int
