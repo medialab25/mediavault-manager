@@ -8,7 +8,7 @@ class SearchRequest(BaseModel):
     query: str                      # The search query string
     quality: Optional[str] = None   # hd, uhd, 4k, etc.
     media_type: Optional[str] = None # tv, movie, etc.
-
+    add_extended_info: bool = False # Whether to add extended info to the response
 
 #    title: Optional[str] = None # 
 #    title: str
