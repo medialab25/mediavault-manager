@@ -7,7 +7,7 @@ from rich.table import Table
 from app.core.config import Config
 from app.api.common.media_manager import MediaManager
 
-app = typer.Typer(add_completion=False)
+app = typer.Typer()
 media_app = typer.Typer(help="Media management commands")
 system_app = typer.Typer(help="System management commands")
 cache_app = typer.Typer(help="Cache management commands")

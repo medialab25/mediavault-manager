@@ -32,3 +32,47 @@ docker rm mediavault
 ```
 
 The application will be available at `http://localhost:8000` when running.
+
+## CLI Usage
+
+The application provides a command-line interface for managing your media library. The CLI supports auto-completion for easier command usage.
+
+### Installing Auto-completion
+
+To enable command auto-completion, run one of the following commands based on your shell:
+
+```bash
+# For Bash
+python -m app.cli --install-completion bash
+
+# For Zsh
+python -m app.cli --install-completion zsh
+
+# For Fish
+python -m app.cli --install-completion fish
+
+# For PowerShell
+python -m app.cli --install-completion powershell
+```
+
+After installation, restart your terminal for the changes to take effect.
+
+### Using Auto-completion
+
+Once installed, you can use TAB completion to:
+- See all available commands
+- Complete command names
+- See available options for each command
+- Complete option names
+
+Example usage:
+```bash
+# List all commands
+python -m app.cli [TAB]
+
+# List all media commands
+python -m app.cli media [TAB]
+
+# See options for media search
+python -m app.cli media search --[TAB]
+```
