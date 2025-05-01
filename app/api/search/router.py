@@ -4,6 +4,7 @@ import logging
 from app.core.status import Status
 from app.core.settings import settings
 from app.api.models.search_request import SearchRequest
+from app.api.models.response import APIResponse
 from app.api.managers.media_manager import MediaManager
 
 
@@ -27,11 +28,10 @@ async def search_media(
         )
         result = await media_manager.search_media(request)
         logger.debug(f"Media search completed: {result}")
-        return {
-            "status": Status.SUCCESS,
-            "message": "Media search completed successfully",
-            "data": result
-        }
+        return APIResponse.success(
+            data=result,
+            message="Media search completed successfully"
+        )
     except Exception as e:
         logger.error(f"Error during media search: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise APIResponse.error(str(e))

@@ -7,6 +7,7 @@ from app.core.status import Status
 from .services.media_merger import MediaMerger
 from .models.validators import validate_media_merge_settings
 from app.core.settings import settings
+from app.api.models.response import APIResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -22,10 +23,13 @@ async def refresh_media():
         logger.debug("Starting media refresh")
         result = await media_server.refresh_media()
         logger.debug(f"Media refresh completed: {result}")
-        return result
+        return APIResponse.success(
+            data=result,
+            message="Media refresh completed successfully"
+        )
     except Exception as e:
         logger.error(f"Error during media refresh: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise APIResponse.error(str(e))
     
 @router.post("/merge", status_code=200)
 async def merge_media(refresh: bool = False) -> dict:
@@ -67,17 +71,16 @@ async def merge_media(refresh: bool = False) -> dict:
             refresh_result = await media_server.refresh_media()
             logger.debug(f"Media refresh completed: {refresh_result}")
             
-        return {
-            "status": Status.SUCCESS,
-            "message": "Media merge completed successfully",
-            "data": {
+        return APIResponse.success(
+            data={
                 "merge": results,
                 "refresh": refresh_result if refresh else None
-            }
-        }
+            },
+            message="Media merge completed successfully"
+        )
     except Exception as e:
         logger.error(f"Error during media merge: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise APIResponse.error(str(e))
     
 
 

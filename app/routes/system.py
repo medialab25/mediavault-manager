@@ -1,5 +1,6 @@
 from fastapi import APIRouter, status
 from datetime import datetime
+from app.api.models.response import APIResponse
 
 router = APIRouter(tags=["system"])
 
@@ -8,7 +9,9 @@ async def health_check():
     """
     Health check endpoint to verify the system is running
     """
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat()
-    } 
+    return APIResponse.success(
+        data={
+            "timestamp": datetime.now().isoformat()
+        },
+        message="System is healthy"
+    ) 

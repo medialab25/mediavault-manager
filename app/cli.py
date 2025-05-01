@@ -6,6 +6,7 @@ from rich.console import Console
 from rich.table import Table
 from app.core.config import Config
 from app.api.managers.media_manager import MediaManager
+from app.core.status import Status
 
 app = typer.Typer()
 media_app = typer.Typer(help="Media management commands")
@@ -35,9 +36,24 @@ async def make_request(method: str, endpoint: str, data: Optional[dict] = None) 
                 raise ValueError(f"Unsupported HTTP method: {method}")
             
             response.raise_for_status()
-            return response.json()
+            result = response.json()
+            
+            # Handle APIResponse format
+            if isinstance(result, dict) and "status" in result and "message" in result:
+                if result["status"] == Status.ERROR:
+                    console.print(f"[red]Error:[/red] {result['message']}")
+                    raise typer.Exit(1)
+                return result
+            return result
         except httpx.HTTPError as e:
-            console.print(f"[red]Error:[/red] {str(e)}")
+            error_detail = e.response.json() if e.response and e.response.content else {"message": str(e)}
+            if isinstance(error_detail, dict) and "detail" in error_detail:
+                if isinstance(error_detail["detail"], dict):
+                    console.print(f"[red]Error:[/red] {error_detail['detail'].get('message', str(e))}")
+                else:
+                    console.print(f"[red]Error:[/red] {error_detail['detail']}")
+            else:
+                console.print(f"[red]Error:[/red] {str(e)}")
             raise typer.Exit(1)
 
 # Media commands
@@ -92,10 +108,11 @@ def search(
 ):
     """Search for media using the search request endpoint"""
     try:
-        # If no parameters provided, show help
-        if not query and not any(v for v in locals().values() if isinstance(v, str)):
+        # If no query provided, show help and exit
+        if not query:
+            console.print("[yellow]No search query provided.[/yellow]")
             console.print(ctx.get_help())
-            raise typer.Exit()
+            return
 
         console.print(f"[yellow]Searching for '{query}'...[/yellow]")
         
@@ -113,7 +130,7 @@ def search(
         console.print(f"[green]Success:[/green] {result['message']}")
         
         # Display the data if it exists
-        if 'data' in result:
+        if result.get('data'):
             console.print("\n[cyan]Search Results:[/cyan]")
             console.print_json(data=result['data'])
         else:
@@ -128,8 +145,9 @@ def health():
     """Check system health"""
     console.print("[yellow]Checking system health...[/yellow]")
     result = asyncio.run(make_request("GET", "system/health"))
-    console.print(f"[green]Status:[/green] {result['status']}")
-    console.print(f"[green]Timestamp:[/green] {result['timestamp']}")
+    console.print(f"[green]Status:[/green] {result['message']}")
+    if result.get('data', {}).get('timestamp'):
+        console.print(f"[green]Timestamp:[/green] {result['data']['timestamp']}")
 
 # Cache commands
 @cache_app.command()
@@ -141,7 +159,7 @@ def list():
         console.print(f"[green]Success:[/green] {result['message']}")
         
         # Display the data if it exists
-        if 'data' in result:
+        if result.get('data'):
             console.print("\n[cyan]Cache Data:[/cyan]")
             console.print_json(data=result['data'])
         else:
@@ -186,7 +204,7 @@ def find(
         console.print(f"[green]Success:[/green] {result['message']}")
         
         # Display the data if it exists
-        if 'data' in result:
+        if result.get('data'):
             console.print("\n[cyan]Search Results:[/cyan]")
             console.print_json(data=result['data'])
         else:

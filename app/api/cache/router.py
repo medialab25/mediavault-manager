@@ -5,6 +5,7 @@ import logging
 from app.core.status import Status
 from app.core.settings import settings
 from app.api.managers.media_manager import MediaManager
+from app.api.models.response import APIResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -21,18 +22,13 @@ async def list_cache() -> Dict[str, Any]:
     try:
         media_manager = MediaManager(settings.MEDIA_LIBRARY)
         folders = media_manager.get_media_group_folders_slim()
-        return {
-            "status": Status.SUCCESS,
-            "message": "Cache contents retrieved successfully",
-            "data": folders if folders else []
-        }
+        return APIResponse.success(
+            data=folders if folders else [],
+            message="Cache contents retrieved successfully"
+        )
     except Exception as e:
         logger.error(f"Error listing cache: {str(e)}")
-        return {
-            "status": Status.ERROR,
-            "message": f"Error retrieving cache contents: {str(e)}",
-            "data": []
-        }
+        raise APIResponse.error(f"Error retrieving cache contents: {str(e)}")
 
 @router.get("/find", status_code=200)
 async def find_media(
@@ -47,15 +43,10 @@ async def find_media(
     try:
         media_manager = MediaManager(settings.MEDIA_LIBRARY)
         results = media_manager.find_media(title, season, episode, group, media_type, search_cache)
-        return {
-            "status": Status.SUCCESS,
-            "message": "Media found successfully",
-            "data": results if results else []
-        }
+        return APIResponse.success(
+            data=results if results else [],
+            message="Media found successfully"
+        )
     except Exception as e:
         logger.error(f"Error finding media: {str(e)}")
-        return {
-            "status": Status.ERROR,
-            "message": f"Error finding media: {str(e)}",
-            "data": []
-        }
+        raise APIResponse.error(f"Error finding media: {str(e)}")
