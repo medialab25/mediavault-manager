@@ -34,4 +34,4 @@ async def search_media(
         )
     except Exception as e:
         logger.error(f"Error during media search: {str(e)}", exc_info=True)
-        raise APIResponse.error(str(e))
+        raise APIResponse.error(str(e)) 

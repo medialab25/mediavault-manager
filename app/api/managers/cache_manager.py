@@ -63,5 +63,4 @@ class CacheManager:
         return groups
 
     def get_all_cache(self) -> Dict[str, CacheContents]:
-        """Get all cache contents."""
-        
+        """Get all cache contents.""" 

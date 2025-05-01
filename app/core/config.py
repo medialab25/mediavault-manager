@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from typing import Dict, Any
-from app.api.media.models.media_library import MediaLibraryConfig
+from app.api.models.config_models import MediaLibraryConfig
 
 class Config:
     def __init__(self, config_path: str = "config.json"):

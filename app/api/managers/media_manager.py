@@ -8,11 +8,23 @@ from app.api.models.search_request import SearchRequest
 from app.core.config import Config
 from typing import Any, List, Optional, Tuple
 import re
+import hashlib
 
 class MediaManager:
     def __init__(self, config: dict[str, Any]):
         self.media_base_path = Path(config.get("default_source_path"))
         self.config = config
+
+    def _generate_media_id(self, full_path: str, media_type: str, title: str, season: Optional[int] = None, episode: Optional[int] = None) -> str:
+        """Generate a unique ID for the media item based on its properties."""
+        # Create a string combining the unique properties
+        id_string = f"{full_path}:{media_type}:{title}"
+        if season is not None:
+            id_string += f":s{season}"
+        if episode is not None:
+            id_string += f":e{episode}"
+        # Generate SHA-256 hash and take first 16 characters for a shorter ID
+        return hashlib.sha256(id_string.encode()).hexdigest()[:16]
 
     def _parse_episode_info(self, filename: str) -> Tuple[Optional[int], Optional[int]]:
         """Parse season and episode numbers from filename.
@@ -180,10 +192,12 @@ class MediaManager:
                         # Get all files in the folder
                         for file in folder.glob("**/*"):
                             if file.is_file():
+                                add_season_episode = media_group.media_type == "tv"
                                 media_item = self._create_media_item_from_file(
                                     file=file,
                                     media_group=media_group,
                                     title=folder.name,
+                                    add_season_episode=add_season_episode,
                                     add_extended_info=request.add_extended_info
                                 )
                                 media_items.append(media_item)
@@ -234,7 +248,13 @@ class MediaManager:
                 metadata=None)
             
         return MediaItem(
-            id=file.name,
+            id=self._generate_media_id(
+                full_path=file.as_posix(),
+                media_type=media_group.media_type,
+                title=title,
+                season=season,
+                episode=episode
+            ),
             full_path=file.as_posix(),
             media_type=media_group.media_type,
             quality=media_group.quality,

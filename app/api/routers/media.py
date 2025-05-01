@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException
 import logging
 
-from app.api.media.services.media_server import MediaServer
-from app.api.managers.models.media_models import MediaFileItem, MediaItemFolder, MediaGroupFolder
+from app.api.managers.media_server import MediaServer
+from app.api.models.media_models import MediaFileItem, MediaItemFolder, MediaGroupFolder
 from app.core.status import Status
-from .services.media_merger import MediaMerger
-from .models.validators import validate_media_merge_settings
+from app.api.managers.media_merger import MediaMerger
+from app.api.validators.validators import validate_media_merge_settings
 from app.core.settings import settings
 from app.api.models.response import APIResponse
 
@@ -80,27 +80,4 @@ async def merge_media(refresh: bool = False) -> dict:
         )
     except Exception as e:
         logger.error(f"Error during media merge: {str(e)}", exc_info=True)
-        raise APIResponse.error(str(e))
-    
-
-
-# @router.get("/cache/list", status_code=200)
-# async def get_cache_list():
-#     """Get the cache list by calling the Media Cache API."""
-#     try:
-#         logger.debug("Starting cache list")
-#         result = await media_service.get_cache_list()
-#         logger.debug(f"Cache list completed: {result}")
-#         return result
-#     except Exception as e:
-#         logger.error(f"Error during cache list: {str(e)}", exc_info=True)
-#         raise HTTPException(status_code=500, detail=str(e))
-
-# @router.get("/", response_model=List[Media])
-# async def list_media():
-#     """List all media items in the library."""
-#     try:
-#         media_items = media_service.scan_directory(settings.MEDIA_ROOT)
-#         return media_items
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e)) 
+        raise APIResponse.error(str(e)) 
