@@ -110,7 +110,7 @@ def search(
     add_extended_info: bool = typer.Option(False, "--extended-info", "-e", help="Add extended info"),
     season: Optional[int] = typer.Option(None, "--season", "-s", help="Season number"),
     episode: Optional[int] = typer.Option(None, "--episode", "-e", help="Episode number"),
-    db_type: Optional[str] = typer.Option("media", "--db-type", "-d", help="Database types (comma-separated: media,cache,pending)")
+    db_type: Optional[str] = typer.Option("media", "--db-type", "-d", help="Database types (comma-separated: media,cache,shadow)")
 ):
     """Search for media using the search request endpoint"""
     try:
@@ -274,9 +274,9 @@ def remove(
         # Display the data if it exists
         if result.get('data'):
             if dry_run:
-                console.print("\n[cyan]Files that would be added to cache:[/cyan]")
+                console.print("\n[cyan]Files that would be removed from cache:[/cyan]")
             else:
-                console.print("\n[cyan]Files added to cache:[/cyan]")
+                console.print("\n[cyan]Files removed from cache:[/cyan]")
             console.print_json(data=result['data'])
         else:
             console.print("[yellow]No results found[/yellow]")

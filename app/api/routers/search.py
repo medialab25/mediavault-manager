@@ -22,7 +22,7 @@ def search_media(
     id: str = Query(None, description="Media ID to search for"),
     season: int = Query(None, description="Season number"),
     episode: int = Query(None, description="Episode number"),
-    db_type: str = Query("media", description="Comma-separated list of database types (media,cache,pending)")
+    db_type: str = Query("media", description="Comma-separated list of database types (media,cache,shadow)")
 ):
     """Search the media library by calling the Media Library API."""
     try:

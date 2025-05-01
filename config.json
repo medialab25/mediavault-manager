@@ -35,6 +35,6 @@
         ],
         "cache_path": "/srv/disks/media-ssd/media",
         "cache_shadow_path": "/srv/storage/media/media-shadow-cache",
-        "cache_pending_path": "/srv/storage/media/media-pending-cache"
+        "system_data_path": "/srv/storage/media/system-data"
     }
 } 

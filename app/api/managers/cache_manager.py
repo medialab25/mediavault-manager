@@ -8,6 +8,7 @@ from pathlib import Path
 from app.api.adapters.os_adapter import os_adapter_hard_link_file
 from app.api.managers.media_manager import MediaManager
 from app.api.managers.media_query import MediaQuery
+from app.api.managers.update_data_manager import UpdateDataManager
 from app.api.models.media_models import MediaDbType, MediaItemGroup, MediaItemGroupDict
 from app.api.models.search_request import SearchRequest
 
@@ -18,9 +19,9 @@ class CacheManager:
         self.config = config
         self.cache_path = Path(config.get("cache_path", ""))
         self.cache_shadow_path = Path(config.get("cache_shadow_path", ""))
-        self.cache_pending_path = Path(config.get("cache_pending_path", ""))
         self.media_manager = MediaManager(config)
-        
+        self.update_data_manager = UpdateDataManager(config)
+
     def list_cache(self) -> MediaItemGroupDict:
         """List all cache contents"""
         try:
@@ -29,24 +30,46 @@ class CacheManager:
             result = self.media_manager.search_media(
                 request=SearchRequest(
                     query="",
-                    db_type=[MediaDbType.PENDING, MediaDbType.CACHE]
+                    db_type=[MediaDbType.CACHE, MediaDbType.SHADOW, MediaDbType.MEDIA]
                 )
             )
 
             # Use the media query to get the items
             media_query = MediaQuery(result)
-            pending_result = media_query.get_items(SearchRequest(
-                db_type=[MediaDbType.PENDING]
+            shadow_result = media_query.get_items(SearchRequest(
+                db_type=[MediaDbType.SHADOW]
             ))
             cache_result = media_query.get_items(SearchRequest(
                 db_type=[MediaDbType.CACHE]
             ))
 
+            # Read update data
+            update_data = self.update_data_manager.read_update_data()
+            add_cache_updates = update_data.get("add_cache_updates", [])
+            remove_cache_updates = update_data.get("remove_cache_updates", [])
+
+            add_cache_result = MediaItemGroup(items=[])
+            remove_cache_result = MediaItemGroup(items=[])
+
+            # For each id in add_cache_updates, add the item to the cache
+            for id in add_cache_updates:
+                item = next((item for item in result.items if item.id == id), None)
+                if item:
+                    add_cache_result.items.append(item)
+
+            # For each id in remove_cache_updates, remove the item from the cache   
+            for id in remove_cache_updates:
+                item = next((item for item in cache_result.items if item.id == id), None)
+                if item:
+                    remove_cache_result.items.append(item)
+
             # Combine the results
             return MediaItemGroupDict(
                 groups={
-                    "pending": pending_result,
-                    "cache": cache_result
+                    "shadow": shadow_result,
+                    "cache": cache_result,
+                    "add_cache": add_cache_result,
+                    "remove_cache": remove_cache_result
                 }
             )
         except Exception as e:
@@ -74,22 +97,14 @@ class CacheManager:
             if dry_run:
                 return result
 
-            # All items in result, use os_adapter to hard link to cache pending path
-            # Extract file paths from result items
-            for item in result.items:
-                target_path = self.media_manager.get_media_target_path(MediaDbType.PENDING, item)
-                os.makedirs(os.path.dirname(target_path), exist_ok=True)
-                # If already exists, remove it
-                if os.path.exists(target_path):
-                    os.remove(target_path)
-                # Link the file
-                os.link(item.full_path, target_path)
+            # Add the items to the update data manager
+            self.update_data_manager.add_cache_update([item.id for item in result.items])
 
             return result
         except Exception as e:
             logger.error(f"Error adding to cache: {str(e)}", exc_info=True)
             raise e
-        
+
     def remove_from_cache(self, data: dict, dry_run: bool = False) -> Dict:
         """Remove items from cache based on search criteria"""
         try:
@@ -101,7 +116,7 @@ class CacheManager:
                 id=data.get("id"),
                 season=data.get("season"),
                 episode=data.get("episode"),
-                db_type=[MediaDbType.PENDING]
+                db_type=[MediaDbType.CACHE]
             )
 
             # Use media manager to search for items
@@ -110,17 +125,11 @@ class CacheManager:
             # If this is a dry run, just return the search results
             if dry_run:
                 return result
-
-            # Move the items from the cache pending to the media
-            for item in result.items:
-                media_path = self.media_manager.get_media_target_path(MediaDbType.MEDIA, item)
-                os.makedirs(os.path.dirname(media_path), exist_ok=True)
-                # If already exists in media, delete the PENDING file
-                if os.path.exists(media_path):
-                    os.remove(item.full_path)
-                else:
-                    # Move the file
-                    os.rename(item.full_path, media_path)
+            
+            # Only remove if items are found
+            if result.items:
+                # Move the items from the cache pending to the media
+                self.update_data_manager.remove_cache_update([item.id for item in result.items])
 
             return result
         except Exception as e:
@@ -128,6 +137,74 @@ class CacheManager:
             raise e
 
     def sync_cache(self, dry_run: bool = False) -> MediaItemGroupDict:
+        """Sync the cache with the media library by moving items from pending to cache
+        
+        Args:
+            dry_run (bool): If True, only show what would be done without making changes
+            
+        Returns:
+            MediaItemGroupDict: The pending items that would be/are processed
+        """
+        add_cache_items = self.update_data_manager.get_add_cache_updates()
+        remove_cache_items = self.update_data_manager.get_remove_cache_updates()
+
+        # Get the items from the media library
+        media_items = self.media_manager.search_media(SearchRequest(db_type=[MediaDbType.MEDIA, MediaDbType.CACHE, MediaDbType.SHADOW]))
+        media_query = MediaQuery(media_items)
+
+        remove_cache_items = media_query.get_items_by_ids(remove_cache_items, MediaDbType.CACHE)
+        add_cache_items = media_query.get_items_by_ids(add_cache_items, MediaDbType.MEDIA)
+        remove_shadow_items = media_query.get_items_by_ids(remove_cache_items, MediaDbType.SHADOW)
+        add_shadow_items = media_query.get_items_by_ids(add_cache_items, MediaDbType.MEDIA)
+
+        # Delete the items from the cache
+        for item in remove_cache_items:
+            # Only if the db_type is cache
+            os.remove(item.full_path)
+        
+        # Move the items from SHADOW to MEDIA
+        for item in remove_shadow_items:
+            shutil.move(item.full_path, self.media_manager.get_media_target_path(MediaDbType.MEDIA, item))
+
+        # Move the item from MEDIA to CACHE
+        for item in add_cache_items:
+            shutil.move(item.full_path, self.media_manager.get_media_target_path(MediaDbType.CACHE, item))
+
+        # Move the items from MEDIA to SHADOW
+        for item in add_shadow_items:
+            shutil.move(item.full_path, self.media_manager.get_media_target_path(MediaDbType.SHADOW, item))
+
+        # Remove the items from the cache   
+        self.update_data_manager.clear_cache_updates()
+
+        return self.list_cache()
+
+    def clean_cache(self, dry_run: bool = False) -> MediaItemGroupDict:
+        """Clean the cache by removing items that are not in the media library"""
+
+        # If there are any media items in SHADOW, move to MEDIA
+        shadow_items = self.media_manager.search_media(SearchRequest(db_type=[MediaDbType.SHADOW]))
+        media_query = MediaQuery(shadow_items)
+        shadow_items = media_query.get_items(SearchRequest(db_type=[MediaDbType.SHADOW]))
+        for item in shadow_items:
+            shutil.move(item.full_path, self.media_manager.get_media_target_path(MediaDbType.MEDIA, item))
+        
+        # Any items in CACHE, remove
+        cache_items = self.media_manager.search_media(SearchRequest(db_type=[MediaDbType.CACHE]))
+        media_query = MediaQuery(cache_items)
+        cache_items = media_query.get_items(SearchRequest(db_type=[MediaDbType.CACHE]))
+        for item in cache_items:
+            os.remove(item.full_path)
+
+        # Clear update data
+        self.update_data_manager.clear_cache_updates()
+
+    def clean_update_data(self) -> None:
+        """Clean the update data"""
+        self.update_data_manager.clear_cache_updates()
+
+        # Return the results in the expected format
+    def sync_cache1(self, dry_run: bool = False) -> MediaItemGroupDict:
         """Sync the cache with the media library by moving items from pending to cache
         
         Args:
@@ -169,8 +246,16 @@ class CacheManager:
                     logger.info(f"Would copy {item.full_path} to {target_path}")
                     continue
 
-                # Copy the file
+                # Copy the file. making sure the folder exists
+                os.makedirs(os.path.dirname(target_path), exist_ok=True)
                 shutil.copy2(item.full_path, target_path)
+
+                # Remove the file from MEDIA
+                os.remove(item.full_path)
+
+                # Clean any folders in pending that are now empty
+#                if os.path.isdir(item.full_path):
+#                    os.rmdir(item.full_path)
 
             # Return the results in the expected format
             return pending_cache_items_dict
@@ -204,8 +289,8 @@ class CacheManager:
             cache_items_not_in_pending = [item for item in cache_items.items if item.id not in [item.id for item in pending_items.items]]
             return MediaItemGroupDict(
                 groups={
-                    "move_to_cache": pending_items_not_in_cache,
-                    "delete_from_cache": cache_items_not_in_pending
+                    "move_to_cache": MediaItemGroup(items=pending_items_not_in_cache),
+                    "delete_from_cache": MediaItemGroup(items=cache_items_not_in_pending)
                 }
             )
         

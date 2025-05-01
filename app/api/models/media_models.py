@@ -2,11 +2,11 @@ from enum import Enum
 from typing import Dict, List, Optional
 from pydantic import BaseModel
 
-# enum for the db types, MEDIA, CACHE, PENDING, SHADOW
+# enum for the db types, MEDIA, CACHE, SHADOW
 class MediaDbType(Enum):
     MEDIA = "media"
     CACHE = "cache"
-    PENDING = "pending"
+    SHADOW = "shadow"
 
 class ExtendedMediaInfo(BaseModel):
     size: int

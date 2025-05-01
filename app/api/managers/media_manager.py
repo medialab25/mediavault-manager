@@ -19,7 +19,6 @@ class MediaManager:
         self.media_base_path = Path(config.get("default_source_path"))
         self.cache_base_path = Path(config.get("cache_path"))
         self.cache_shadow_path = Path(config.get("cache_shadow_path"))
-        self.cache_pending_path = Path(config.get("cache_pending_path"))
 
     def _generate_media_id(self, relative_path: str, media_type: str, media_prefix: str, title: str, season: Optional[int] = None, episode: Optional[int] = None) -> str:
         """Generate a unique ID for the media item based on its properties."""
@@ -56,8 +55,8 @@ class MediaManager:
             return self.media_base_path
         elif db_type == MediaDbType.CACHE:
             return self.cache_base_path
-        elif db_type == MediaDbType.PENDING:
-            return self.cache_pending_path
+        elif db_type == MediaDbType.SHADOW:
+            return self.cache_shadow_path
 
     # Get all media group folders using the source_matrix in the config
     def get_media_group_folders_slim(self) -> list[str]:
