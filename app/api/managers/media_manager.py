@@ -57,6 +57,8 @@ class MediaManager:
             return self.cache_base_path
         elif db_type == MediaDbType.PENDING:
             return self.cache_pending_path
+        elif db_type == MediaDbType.SHADOW:
+            return self.cache_shadow_path
 
     # Get all media group folders using the source_matrix in the config
     def get_media_group_folders_slim(self) -> list[str]:

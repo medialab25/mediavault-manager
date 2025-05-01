@@ -251,9 +251,14 @@ def sync(
     
     result = asyncio.run(make_request("POST", "api/sync/", data={"dry_run": dry_run}))
     
-    if dry_run:
-        console.print(f"[green]Dry run completed:[/green] {result['message']}")
+        # Display the data if it exists
+    if result.get('data'):
+        if dry_run:
+            console.print("\n[cyan]Files that would be synced:[/cyan]")
+        else:
+            console.print("\n[cyan]Files synced:[/cyan]")
+        console.print_json(data=result['data'])
     else:
-        console.print(f"[green]Success:[/green] {result['message']}")
+            console.print("[yellow]No results found[/yellow]")
 if __name__ == "__main__":
     app() 

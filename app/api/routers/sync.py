@@ -14,11 +14,12 @@ sync_manager = SyncManager(settings.MEDIA_LIBRARY)
 async def sync_cache(data: Dict = Body(...)):
     """Sync the cache with the media library"""
     try:
-        logger.debug("Syncing cache with media library")
-        result = sync_manager.sync()
+        dry_run = data.get("dry_run", False)
+        logger.debug(f"Syncing cache with media library{' (dry run)' if dry_run else ''}")
+        result = sync_manager.sync(dry_run=dry_run)
         return APIResponse.success(
             data=result,
-            message="Cache synced successfully"
+            message="Cache would be synced successfully" if dry_run else "Cache synced successfully"
         )
     except Exception as e:
         logger.error(f"Error syncing cache: {str(e)}", exc_info=True)

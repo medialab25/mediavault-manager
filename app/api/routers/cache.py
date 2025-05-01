@@ -6,7 +6,6 @@ from typing import Optional, Dict
 
 from app.api.managers.cache_manager import CacheManager
 from app.api.managers.media_query import MediaQuery
-from app.api.models.cache_models import CacheStatusList
 from app.core.status import Status
 from app.core.settings import settings
 from app.api.models.response import APIResponse

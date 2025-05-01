@@ -1,13 +1,14 @@
 import os
 import logging
 from datetime import datetime
+import shutil
 from typing import List, Dict, Optional, Any
 from pathlib import Path
 
 from app.api.adapters.os_adapter import os_adapter_hard_link_file
 from app.api.managers.media_manager import MediaManager
 from app.api.managers.media_query import MediaQuery
-from app.api.models.media_models import MediaDbType, MediaItemGroupList, MediaItemGroupDict
+from app.api.models.media_models import MediaDbType, MediaItemGroup, MediaItemGroupDict
 from app.api.models.search_request import SearchRequest
 
 logger = logging.getLogger(__name__)
@@ -84,10 +85,17 @@ class CacheManager:
             logger.error(f"Error adding to cache: {str(e)}", exc_info=True)
             raise e
 
-    def sync_cache(self) -> MediaItemGroupList:
-        """Sync the cache with the media library by moving items from pending to cache"""
+    def sync_cache(self, dry_run: bool = False) -> MediaItemGroup:
+        """Sync the cache with the media library by moving items from pending to cache
+        
+        Args:
+            dry_run (bool): If True, only show what would be done without making changes
+            
+        Returns:
+            MediaItemGroupDict: The pending items that would be/are processed
+        """
         try:
-            logger.debug("Starting cache sync")
+            logger.debug(f"Starting cache sync{' (dry run)' if dry_run else ''}")
             
             # Get all pending items
             pending_items = self.media_manager.search_media(
@@ -97,23 +105,34 @@ class CacheManager:
                 )
             )
 
-            # Move each pending item to cache
+            # Process each pending item
             for item in pending_items.items:
-                # Get the target path in cache
+                # Get the target paths
                 target_path = self.media_manager.get_media_target_path(MediaDbType.CACHE, item)
+                shadow_path = self.media_manager.get_media_target_path(MediaDbType.SHADOW, item)
+                
+                if dry_run:
+                    logger.info(f"Would copy {item.full_path} to {target_path}")
+                    logger.info(f"Would move {item.full_path} to {shadow_path}")
+                    continue
                 
                 # Create the target directory if it doesn't exist
                 os.makedirs(os.path.dirname(target_path), exist_ok=True)
                 
-                # Hard link the file
-                os_adapter_hard_link_file(item.full_path, target_path)
-                
-                # Remove the pending file
-                os.remove(item.full_path)
+                # Copy the file making sure it doesn't already exist
+                if not os.path.exists(target_path):
+                    shutil.copy2(item.full_path, target_path)
 
-            return {
-                "synced_items": len(pending_items.items)
-            }
+                    # Move the pending into the shadow path ensuring the target folder exists 
+                    os.makedirs(os.path.dirname(shadow_path), exist_ok=True)
+                    os.rename(item.full_path, shadow_path)  
+                
+                # Update the item to the cache db type
+                item.db_type = MediaDbType.CACHE
+
+            # Return the results in the expected format
+            return pending_items
+        
         except Exception as e:
             logger.error(f"Error syncing cache: {str(e)}", exc_info=True)
             raise e
