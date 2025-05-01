@@ -15,7 +15,7 @@ router = APIRouter()
 media_manager = MediaManager(settings.MEDIA_LIBRARY)
 
 @router.get("/", status_code=200)
-async def search_media(
+def search_media(
     query: str = Query(None, description="Search query string"),
     media_type: str = Query(None, description="Media type (tv,movie)"),
     quality: str = Query(None, description="Quality (hd,uhd,4k)"),
@@ -48,7 +48,7 @@ async def search_media(
             episode=episode,
             db_type=db_types
         )
-        result = await media_manager.search_media(request)
+        result = media_manager.search_media(request)
         logger.debug(f"Media search completed: {result}")
         return APIResponse.success(
             data=result,

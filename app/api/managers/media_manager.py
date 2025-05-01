@@ -99,12 +99,14 @@ class MediaManager:
                 base_paths.append(self.cache_pending_path)
 
         # Search each base path for the media
+        all_items = []
         for base_path in base_paths:
             result = self.search_media_db(request, base_path)
-            if result:
-                return result
+            if result and result.items:
+                all_items.extend(result.items)
 
-        return None
+        # Return combined results
+        return MediaItemGroup(items=all_items)
 
     def search_media_db(self, request: SearchRequest, base_path: Path) -> MediaItemGroup:
         """Search media in cache by title and optional parameters"""
