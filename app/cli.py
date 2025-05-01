@@ -11,11 +11,13 @@ app = typer.Typer(add_completion=False)
 media_app = typer.Typer(help="Media management commands")
 system_app = typer.Typer(help="System management commands")
 cache_app = typer.Typer(help="Cache management commands")
+search_app = typer.Typer(help="Search management commands")
 
 # Add the command groups to the main app
 app.add_typer(media_app, name="media")
 app.add_typer(system_app, name="system")
 app.add_typer(cache_app, name="cache")
+app.add_typer(search_app, name="search")
 
 console = Console()
 
@@ -82,6 +84,38 @@ def merge(
     if refresh and result.get('data', {}).get('refresh'):
         console.print(f"[green]Refresh Status:[/green] {result['data']['refresh']}")
 
+@media_app.command()
+def search(
+    query: str = typer.Argument(..., help="Search query string"),
+    media_type: Optional[str] = typer.Option(None, "--media-type", "-m", help="Media type (tv,movie)"),
+    quality: Optional[str] = typer.Option(None, "--quality", "-q", help="Quality (hd,uhd,4k)")
+):
+    """Search for media using the search request endpoint"""
+    try:
+        console.print(f"[yellow]Searching for '{query}'...[/yellow]")
+        
+        # Build query parameters
+        params = {"query": query}
+        if media_type is not None:
+            params["media_type"] = media_type
+        if quality is not None:
+            params["quality"] = quality
+            
+        # Convert params to query string
+        query_string = "&".join(f"{k}={v}" for k, v in params.items())
+        result = asyncio.run(make_request("GET", f"api/search?{query_string}"))
+        
+        console.print(f"[green]Success:[/green] {result['message']}")
+        
+        # Display the data if it exists
+        if 'data' in result:
+            console.print("\n[cyan]Search Results:[/cyan]")
+            console.print_json(data=result['data'])
+        else:
+            console.print("[yellow]No results found[/yellow]")
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {str(e)}")
+        raise typer.Exit(1)
 
 # System commands
 @system_app.command()
