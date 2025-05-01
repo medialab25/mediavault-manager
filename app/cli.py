@@ -239,6 +239,21 @@ def add(
         console.print(f"[red]Error:[/red] {str(e)}")
         raise typer.Exit(1)
 
-
+@app.command()
+def sync(
+    dry_run: bool = typer.Option(False, "--dry-run", "-n", help="Show what would be synced without making changes"),
+):
+    """Sync the cache with the media library"""
+    if dry_run:
+        console.print("[yellow]Dry run - showing what would be synced...[/yellow]")
+    else:
+        console.print("[yellow]Syncing cache with media library...[/yellow]")
+    
+    result = asyncio.run(make_request("POST", "api/sync/", data={"dry_run": dry_run}))
+    
+    if dry_run:
+        console.print(f"[green]Dry run completed:[/green] {result['message']}")
+    else:
+        console.print(f"[green]Success:[/green] {result['message']}")
 if __name__ == "__main__":
     app() 

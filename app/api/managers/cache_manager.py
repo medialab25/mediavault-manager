@@ -7,9 +7,8 @@ from pathlib import Path
 from app.api.adapters.os_adapter import os_adapter_hard_link_file
 from app.api.managers.media_manager import MediaManager
 from app.api.managers.media_query import MediaQuery
-from app.api.models.media_models import MediaDbType, MediaItemGroup
+from app.api.models.media_models import MediaDbType, MediaItemGroupList, MediaItemGroupDict
 from app.api.models.search_request import SearchRequest
-from app.api.models.cache_models import CacheStatusList
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +20,7 @@ class CacheManager:
         self.cache_pending_path = Path(config.get("cache_pending_path", ""))
         self.media_manager = MediaManager(config)
         
-    def list_cache(self) -> CacheStatusList:
+    def list_cache(self) -> MediaItemGroupDict:
         """List all cache contents"""
         try:
             logger.debug("Listing cache contents")
@@ -43,9 +42,11 @@ class CacheManager:
             ))
 
             # Combine the results
-            return CacheStatusList(
-                pending=pending_result,
-                cache=cache_result
+            return MediaItemGroupDict(
+                groups={
+                    "pending": pending_result,
+                    "cache": cache_result
+                }
             )
         except Exception as e:
             logger.error(f"Error listing cache: {str(e)}", exc_info=True)
@@ -81,5 +82,39 @@ class CacheManager:
             return result
         except Exception as e:
             logger.error(f"Error adding to cache: {str(e)}", exc_info=True)
+            raise e
+
+    def sync_cache(self) -> MediaItemGroupList:
+        """Sync the cache with the media library by moving items from pending to cache"""
+        try:
+            logger.debug("Starting cache sync")
+            
+            # Get all pending items
+            pending_items = self.media_manager.search_media(
+                request=SearchRequest(
+                    query="",
+                    db_type=[MediaDbType.PENDING]
+                )
+            )
+
+            # Move each pending item to cache
+            for item in pending_items.items:
+                # Get the target path in cache
+                target_path = self.media_manager.get_media_target_path(MediaDbType.CACHE, item)
+                
+                # Create the target directory if it doesn't exist
+                os.makedirs(os.path.dirname(target_path), exist_ok=True)
+                
+                # Hard link the file
+                os_adapter_hard_link_file(item.full_path, target_path)
+                
+                # Remove the pending file
+                os.remove(item.full_path)
+
+            return {
+                "synced_items": len(pending_items.items)
+            }
+        except Exception as e:
+            logger.error(f"Error syncing cache: {str(e)}", exc_info=True)
             raise e
 

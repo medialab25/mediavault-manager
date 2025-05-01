@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional
+from typing import Dict, List, Optional
 from pydantic import BaseModel
 
 # enum for the db types, MEDIA, CACHE, PENDING
@@ -54,3 +54,6 @@ class MediaItemGroup(BaseModel):
 class MediaItemGroupList(BaseModel):
     groups: List[MediaItemGroup]
 
+class MediaItemGroupDict(BaseModel):
+    groups: Dict[str, MediaItemGroup]
+    
