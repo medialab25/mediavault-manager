@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Optional, Dict
 from pathlib import Path
 
-from app.api.common.models.media_models import MediaGroupFolderList, MediaItem, MediaItemFolder, MediaGroupFolder, ExtendedMediaInfo
+from app.api.managers.models.media_models import MediaGroupFolderList, MediaFileItem, MediaItemFolder, MediaGroupFolder, ExtendedMediaInfo
 
 class MediaDataManager:
     def __init__(self, base_path: str):
@@ -40,7 +40,7 @@ class MediaDataManager:
         
         return {"season": None, "episode": None}
 
-    def read_media_item(self, file_path: str) -> MediaItem:
+    def read_media_item(self, file_path: str) -> MediaFileItem:
         """Read a single media item from a file path."""
         path = Path(file_path)
         if not path.exists():
@@ -50,7 +50,7 @@ class MediaDataManager:
         file_info = self._parse_filename(filename)
         extended_info = self._get_file_info(path)
 
-        return MediaItem(
+        return MediaFileItem(
             filename=filename,
             season=file_info["season"],
             episode=file_info["episode"],
@@ -64,7 +64,7 @@ class MediaDataManager:
             raise FileNotFoundError(f"Media folder not found: {folder_path}")
 
         title = path.name
-        items: List[MediaItem] = []
+        items: List[MediaFileItem] = []
 
         for file in path.glob("*"):
             if file.is_file():

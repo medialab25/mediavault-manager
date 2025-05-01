@@ -9,7 +9,7 @@ class ExtendedMediaInfo(BaseModel):
     updated_at: datetime
     metadata: Optional[dict] = None
 
-class MediaItem(BaseModel):
+class MediaFileItem(BaseModel):
     path: str
     season: Optional[int] = None
     episode: Optional[int] = None
@@ -23,7 +23,7 @@ class MediaItemFolder(BaseModel):
     title: str
     media_type: str
     path: str
-    items: List[MediaItem]
+    items: List[MediaFileItem]
 
     class Config:
         from_attributes = True
@@ -51,3 +51,10 @@ class MediaCacheList(BaseModel):
 
     class Config:
         from_attributes = True
+
+class MediaDataItem(BaseModel):
+    media_type: str
+    quality: str
+    media_prefix: str
+    path: str
+    items: List[MediaFileItem]

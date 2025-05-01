@@ -5,19 +5,17 @@ from typing import Optional
 from rich.console import Console
 from rich.table import Table
 from app.core.config import Config
-from app.api.common.media_manager import MediaManager
+from app.api.managers.media_manager import MediaManager
 
 app = typer.Typer()
 media_app = typer.Typer(help="Media management commands")
 system_app = typer.Typer(help="System management commands")
 cache_app = typer.Typer(help="Cache management commands")
-search_app = typer.Typer(help="Search management commands")
 
 # Add the command groups to the main app
 app.add_typer(media_app, name="media")
 app.add_typer(system_app, name="system")
 app.add_typer(cache_app, name="cache")
-app.add_typer(search_app, name="search")
 
 console = Console()
 
@@ -84,14 +82,21 @@ def merge(
     if refresh and result.get('data', {}).get('refresh'):
         console.print(f"[green]Refresh Status:[/green] {result['data']['refresh']}")
 
-@media_app.command()
+# Search command
+@app.command()
 def search(
-    query: str = typer.Argument(..., help="Search query string"),
+    ctx: typer.Context,
+    query: Optional[str] = typer.Argument(None, help="Search query string"),
     media_type: Optional[str] = typer.Option(None, "--media-type", "-m", help="Media type (tv,movie)"),
     quality: Optional[str] = typer.Option(None, "--quality", "-q", help="Quality (hd,uhd,4k)")
 ):
     """Search for media using the search request endpoint"""
     try:
+        # If no parameters provided, show help
+        if not query and not any(v for v in locals().values() if isinstance(v, str)):
+            console.print(ctx.get_help())
+            raise typer.Exit()
+
         console.print(f"[yellow]Searching for '{query}'...[/yellow]")
         
         # Build query parameters
@@ -103,7 +108,7 @@ def search(
             
         # Convert params to query string
         query_string = "&".join(f"{k}={v}" for k, v in params.items())
-        result = asyncio.run(make_request("GET", f"api/search?{query_string}"))
+        result = asyncio.run(make_request("GET", f"api/search/?{query_string}"))
         
         console.print(f"[green]Success:[/green] {result['message']}")
         

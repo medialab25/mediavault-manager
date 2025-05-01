@@ -4,7 +4,7 @@ import logging
 
 from app.core.status import Status
 from app.core.settings import settings
-from app.api.common.media_manager import MediaManager
+from app.api.managers.media_manager import MediaManager
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
