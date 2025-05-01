@@ -97,14 +97,11 @@ class MediaManager:
         """Search media in cache by title and optional parameters"""
 
         # For each db_type get the base path and add to list
-        base_paths = []
-        for db_type in request.db_type:
-            base_paths.append(self.get_db_path(db_type))
-
-        # Search each base path for the media
         all_items = []
-        for base_path in base_paths:
-            result = self._search_media_db(request, base_path)
+        for db_type in request.db_type:
+            base_path = self.get_db_path(db_type)
+            
+            result = self._search_media_db(request, base_path, db_type)
             if result and result.items:
                 all_items.extend(result.items)
 
@@ -118,8 +115,7 @@ class MediaManager:
         file_name = media_item.full_path.split("/")[-1]
         return self.get_db_path(db_type) / f"{media_prefix}-{quality}" / media_item.title / file_name
 
-
-    def _search_media_db(self, request: SearchRequest, base_path: Path) -> MediaItemGroup:
+    def _search_media_db(self, request: SearchRequest, base_path: Path, db_type: MediaDbType) -> MediaItemGroup:
         """Search media in cache by title and optional parameters"""
 
         # Create a media filter
@@ -158,6 +154,7 @@ class MediaManager:
                                 file=file,
                                 media_group=media_group,
                                 title=folder.name,
+                                db_type=db_type,
                                 add_season_episode=add_season_episode,
                                 add_extended_info=request.add_extended_info
                             )
@@ -169,7 +166,7 @@ class MediaManager:
         # Return the filtered results
         return MediaItemGroup(items=media_items)
 
-    def _create_media_item_from_file(self, file: Path, media_group: MediaGroupFolder, title: str, add_season_episode: bool = False, add_extended_info: bool = False) -> MediaItem:
+    def _create_media_item_from_file(self, file: Path, media_group: MediaGroupFolder, title: str, db_type: MediaDbType, add_season_episode: bool = False, add_extended_info: bool = False) -> MediaItem:
         season = None
         episode = None
         
@@ -193,7 +190,7 @@ class MediaManager:
                 season=season,
                 episode=episode
             ),
-            db_type=MediaDbType.MEDIA,
+            db_type=db_type,
             full_path=file.as_posix(),
             media_type=media_group.media_type,
             media_prefix=media_group.media_prefix,
