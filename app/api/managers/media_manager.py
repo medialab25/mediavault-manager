@@ -187,19 +187,24 @@ class MediaManager:
             # Search through each folder in the media group
             for folder in path.glob("*"):
                 if folder.is_dir():
-                    # Check if the folder name matches the search query
-                    if request.query.lower() in folder.name.lower():
-                        # Get all files in the folder
-                        for file in folder.glob("**/*"):
-                            if file.is_file():
-                                add_season_episode = media_group.media_type == "tv"
-                                media_item = self._create_media_item_from_file(
-                                    file=file,
-                                    media_group=media_group,
-                                    title=folder.name,
-                                    add_season_episode=add_season_episode,
-                                    add_extended_info=request.add_extended_info
-                                )
+                    # Get all files in the folder
+                    for file in folder.glob("**/*"):
+                        if file.is_file():
+                            add_season_episode = media_group.media_type == "tv"
+                            media_item = self._create_media_item_from_file(
+                                file=file,
+                                media_group=media_group,
+                                title=folder.name,
+                                add_season_episode=add_season_episode,
+                                add_extended_info=request.add_extended_info
+                            )
+                            
+                            # If searching by ID, only add items that match the ID
+                            if request.id:
+                                if media_item.id == request.id:
+                                    media_items.append(media_item)
+                            # Otherwise, check if the folder name matches the search query
+                            elif request.query.lower() in folder.name.lower():
                                 media_items.append(media_item)
 
         # Return the filtered results

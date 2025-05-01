@@ -104,20 +104,26 @@ def search(
     ctx: typer.Context,
     query: Optional[str] = typer.Argument(None, help="Search query string"),
     media_type: Optional[str] = typer.Option(None, "--media-type", "-m", help="Media type (tv,movie)"),
-    quality: Optional[str] = typer.Option(None, "--quality", "-q", help="Quality (hd,uhd,4k)")
+    quality: Optional[str] = typer.Option(None, "--quality", "-q", help="Quality (hd,uhd,4k)"),
+    id: Optional[str] = typer.Option(None, "--id", "-i", help="Media ID to search for")
 ):
     """Search for media using the search request endpoint"""
     try:
-        # If no query provided, show help and exit
-        if not query:
-            console.print("[yellow]No search query provided.[/yellow]")
+        # If no query or id provided, show help and exit
+        if not query and not id:
+            console.print("[yellow]No search query or ID provided.[/yellow]")
             console.print(ctx.get_help())
             return
 
-        console.print(f"[yellow]Searching for '{query}'...[/yellow]")
+        search_term = id if id else query
+        console.print(f"[yellow]Searching for '{search_term}'...[/yellow]")
         
         # Build query parameters
-        params = {"query": query}
+        params = {}
+        if query:
+            params["query"] = query
+        if id:
+            params["id"] = id
         if media_type is not None:
             params["media_type"] = media_type
         if quality is not None:
