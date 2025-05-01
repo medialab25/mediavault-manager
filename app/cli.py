@@ -105,7 +105,10 @@ def search(
     query: Optional[str] = typer.Argument(None, help="Search query string"),
     media_type: Optional[str] = typer.Option(None, "--media-type", "-m", help="Media type (tv,movie)"),
     quality: Optional[str] = typer.Option(None, "--quality", "-q", help="Quality (hd,uhd,4k)"),
-    id: Optional[str] = typer.Option(None, "--id", "-i", help="Media ID to search for")
+    id: Optional[str] = typer.Option(None, "--id", "-i", help="Media ID to search for"),
+    add_extended_info: bool = typer.Option(False, "--extended-info", "-e", help="Add extended info"),
+    season: Optional[int] = typer.Option(None, "--season", "-s", help="Season number"),
+    episode: Optional[int] = typer.Option(None, "--episode", "-e", help="Episode number")
 ):
     """Search for media using the search request endpoint"""
     try:
@@ -128,6 +131,12 @@ def search(
             params["media_type"] = media_type
         if quality is not None:
             params["quality"] = quality
+        if season is not None:
+            params["season"] = season
+        if episode is not None:
+            params["episode"] = episode
+        if add_extended_info:
+            params["add_extended_info"] = add_extended_info
             
         # Convert params to query string
         query_string = "&".join(f"{k}={v}" for k, v in params.items())

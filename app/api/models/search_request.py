@@ -10,7 +10,10 @@ class SearchRequest(BaseModel):
     media_type: Optional[str] = None # tv, movie, etc.
     add_extended_info: bool = False # Whether to add extended info to the response
     id: Optional[str] = None        # Optional media ID to search for
-
+    season: Optional[int] = None    # Optional season number to search for
+    episode: Optional[int] = None   # Optional episode number to search for
+    media_prefix: Optional[str] = None # Optional media prefix to search for
+    
 #    title: Optional[str] = None # 
 #    title: str
 #    season: Optional[int] = None
