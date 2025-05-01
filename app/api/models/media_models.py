@@ -41,6 +41,7 @@ class MediaItem(BaseModel):
     db_type: MediaDbType
     full_path: str
     media_type: str
+    media_prefix: str
     quality: str
     title: str
     season: Optional[int] = None

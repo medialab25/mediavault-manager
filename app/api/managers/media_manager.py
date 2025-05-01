@@ -20,10 +20,10 @@ class MediaManager:
         self.cache_shadow_path = Path(config.get("cache_shadow_path"))
         self.cache_pending_path = Path(config.get("cache_pending_path"))
 
-    def _generate_media_id(self, full_path: str, media_type: str, title: str, season: Optional[int] = None, episode: Optional[int] = None) -> str:
+    def _generate_media_id(self, full_path: str, media_type: str, media_prefix: str, title: str, season: Optional[int] = None, episode: Optional[int] = None) -> str:
         """Generate a unique ID for the media item based on its properties."""
         # Create a string combining the unique properties
-        id_string = f"{full_path}:{media_type}:{title}"
+        id_string = f"{full_path}:{media_type}:{media_prefix}:{title}"
         if season is not None:
             id_string += f":s{season}"
         if episode is not None:
@@ -104,14 +104,22 @@ class MediaManager:
         # Search each base path for the media
         all_items = []
         for base_path in base_paths:
-            result = self.search_media_db(request, base_path)
+            result = self._search_media_db(request, base_path)
             if result and result.items:
                 all_items.extend(result.items)
 
         # Return combined results
         return MediaItemGroup(items=all_items)
 
-    def search_media_db(self, request: SearchRequest, base_path: Path) -> MediaItemGroup:
+    def get_media_target_path(self, db_type: MediaDbType, media_item: MediaItem) -> Path:
+        """Get the target path for the media item based on the media type and quality"""
+        media_prefix = media_item.media_prefix
+        quality = media_item.quality
+        file_name = media_item.full_path.split("/")[-1]
+        return self.get_db_path(db_type) / f"{media_prefix}-{quality}" / media_item.title / file_name
+
+
+    def _search_media_db(self, request: SearchRequest, base_path: Path) -> MediaItemGroup:
         """Search media in cache by title and optional parameters"""
 
         # Create a media filter
@@ -180,6 +188,7 @@ class MediaManager:
             id=self._generate_media_id(
                 full_path=file.as_posix(),
                 media_type=media_group.media_type,
+                media_prefix=media_group.media_prefix,
                 title=title,
                 season=season,
                 episode=episode
@@ -187,6 +196,7 @@ class MediaManager:
             db_type=MediaDbType.MEDIA,
             full_path=file.as_posix(),
             media_type=media_group.media_type,
+            media_prefix=media_group.media_prefix,
             quality=media_group.quality,
             title=title,
             season=season,

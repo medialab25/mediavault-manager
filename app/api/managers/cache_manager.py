@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import List, Dict, Optional, Any
 from pathlib import Path
 
+from app.api.adapters.os_adapter import os_adapter_hard_link_file
 from app.api.managers.media_manager import MediaManager
 from app.api.managers.media_query import MediaQuery
 from app.api.models.media_models import MediaDbType, MediaItemGroup
@@ -71,8 +72,12 @@ class CacheManager:
             if dry_run:
                 return result
 
-            # TODO: Implement actual cache addition logic here
-            # For now, we're just returning the search results
+            # All items in result, use os_adapter to hard link to cache pending path
+            # Extract file paths from result items
+            for item in result.items:
+                target_path = self.media_manager.get_media_target_path(MediaDbType.PENDING, item)
+                os_adapter_hard_link_file(item.full_path, target_path)
+
             return result
         except Exception as e:
             logger.error(f"Error adding to cache: {str(e)}", exc_info=True)
