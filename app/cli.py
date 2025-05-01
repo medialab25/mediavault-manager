@@ -194,5 +194,51 @@ def list():
         console.print(f"[red]Error:[/red] {str(e)}")
         raise typer.Exit(1)
 
+@cache_app.command()
+def add(
+    query: Optional[str] = typer.Argument(None, help="Search query string"),
+    media_type: Optional[str] = typer.Option(None, "--media-type", "-m", help="Media type (tv,movie)"),
+    quality: Optional[str] = typer.Option(None, "--quality", "-q", help="Quality (hd,uhd,4k)"),
+    id: Optional[str] = typer.Option(None, "--id", "-i", help="Media ID to search for"),
+    season: Optional[int] = typer.Option(None, "--season", "-s", help="Season number"),
+    episode: Optional[int] = typer.Option(None, "--episode", "-e", help="Episode number"),
+    dry_run: bool = typer.Option(False, "--dry-run", "-n", help="Show what would be added without making changes"),
+):
+    """Add an item to the cache"""
+    try:
+        if dry_run:
+            console.print("[yellow]Dry run - showing what would be added to cache...[/yellow]")
+        else:
+            console.print(f"[yellow]Adding item(s) to cache...[/yellow]")
+        
+        result = asyncio.run(make_request("POST", "api/cache/add", data={
+            "query": query, 
+            "media_type": media_type, 
+            "quality": quality, 
+            "id": id, 
+            "season": season, 
+            "episode": episode,
+            "dry_run": dry_run
+        }))
+        
+        if dry_run:
+            console.print(f"[green]Dry run completed:[/green] {result['message']}")
+        else:
+            console.print(f"[green]Success:[/green] {result['message']}")
+        
+        # Display the data if it exists
+        if result.get('data'):
+            if dry_run:
+                console.print("\n[cyan]Files that would be added to cache:[/cyan]")
+            else:
+                console.print("\n[cyan]Files added to cache:[/cyan]")
+            console.print_json(data=result['data'])
+        else:
+            console.print("[yellow]No results found[/yellow]")
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {str(e)}")
+        raise typer.Exit(1)
+
+
 if __name__ == "__main__":
     app() 

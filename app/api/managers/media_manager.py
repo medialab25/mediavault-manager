@@ -50,6 +50,14 @@ class MediaManager:
         
         return None, None
 
+    def get_db_path(self, db_type: MediaDbType) -> Path:
+        if db_type == MediaDbType.MEDIA:
+            return self.media_base_path
+        elif db_type == MediaDbType.CACHE:
+            return self.cache_base_path
+        elif db_type == MediaDbType.PENDING:
+            return self.cache_pending_path
+
     # Get all media group folders using the source_matrix in the config
     def get_media_group_folders_slim(self) -> list[str]:
         """Get all media group folders based on the source matrix configuration.
@@ -91,12 +99,7 @@ class MediaManager:
         # For each db_type get the base path and add to list
         base_paths = []
         for db_type in request.db_type:
-            if db_type == MediaDbType.MEDIA:
-                base_paths.append(self.media_base_path)
-            elif db_type == MediaDbType.CACHE:
-                base_paths.append(self.cache_base_path)
-            elif db_type == MediaDbType.PENDING:
-                base_paths.append(self.cache_pending_path)
+            base_paths.append(self.get_db_path(db_type))
 
         # Search each base path for the media
         all_items = []
