@@ -1,7 +1,9 @@
 # Management of media using the file_manager class
 from pathlib import Path
-from app.api.managers.models.media_models import ExtendedMediaInfo, MediaGroupFolder, MediaGroupFolderList, MediaFileItem, MediaItemFolder
-from app.api.models.media_data import MediaItem, MediaItemGroup
+from app.api.models.media_models import (
+    ExtendedMediaInfo, MediaGroupFolder, MediaGroupFolderList,
+    MediaFileItem, MediaItemFolder, MediaItem, MediaItemGroup
+)
 from app.api.models.search_request import SearchRequest
 from app.core.config import Config
 from typing import Any, List, Optional, Tuple
