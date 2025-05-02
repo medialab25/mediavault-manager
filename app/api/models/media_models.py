@@ -7,6 +7,7 @@ class MediaDbType(Enum):
     MEDIA = "media"
     CACHE = "cache"
     SHADOW = "shadow"
+    UNDEFINED = "undefined"
 
 class ExtendedMediaInfo(BaseModel):
     size: int
@@ -41,6 +42,7 @@ class MediaItem(BaseModel):
     id: str
     db_type: MediaDbType
     full_path: str
+    relative_title_path: str
     media_type: str
     media_prefix: str
     quality: str

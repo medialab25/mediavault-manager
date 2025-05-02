@@ -93,36 +93,7 @@ def merge(
     
     if json:
         console.print_json(data=result)
-
-    # Display changes in a table only if details option is specified
-    if details and result.get('data', {}).get('merge'):
-        for media_type, merge_result in result['data']['merge'].items():
-            table = Table(title=f"{media_type.title()} Changes")
-            table.add_column("Type", style="cyan")
-            table.add_column("Folder", style="yellow")
-            table.add_column("Quality", style="green")
-            
-            # Add added folders
-            for folder, quality in merge_result.get('added_folders', {}).items():
-                table.add_row("Added", folder, quality)
-            
-            # Add updated folders
-            for folder, quality in merge_result.get('updated_folders', {}).items():
-                table.add_row("Updated", folder, quality)
-            
-            # Add deleted folders
-            for folder, quality in merge_result.get('deleted_folders', {}).items():
-                table.add_row("Removed", folder, quality)
-            
-            # Add skipped folders
-            for folder, quality in merge_result.get('skipped_folders', {}).items():
-                table.add_row("Skipped", folder, quality)
-            
-            # Add status row
-            table.add_row("Status", merge_result.get('status', 'unknown'), "")
-            
-            console.print(table)
-    
+   
     if refresh and result.get('data', {}).get('refresh'):
         console.print(f"[green]Refresh Status:[/green] {result['data']['refresh']}")
 

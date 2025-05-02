@@ -17,8 +17,9 @@ class MediaManager:
         self.config = config
         # Initialize paths from config
         self.media_base_path = Path(config.get("default_source_path"))
+        self.media_full_base_path = Path(config.get("default_full_source_path"))
         self.cache_base_path = Path(config.get("cache_path"))
-        self.cache_shadow_path = Path(config.get("cache_shadow_path"))
+        self.system_data_path = Path(config.get("system_data_path"))
 
     def _generate_media_id(self, relative_path: str, media_type: str, media_prefix: str, title: str, season: Optional[int] = None, episode: Optional[int] = None) -> str:
         """Generate a unique ID for the media item based on its properties."""
@@ -57,15 +58,18 @@ class MediaManager:
             return self.cache_base_path
         elif db_type == MediaDbType.SHADOW:
             return self.cache_shadow_path
+        else:
+            return self.media_base_path  # Default to media base path for UNDEFINED
+
+    #def get_db_path_with_base_path(self, db_type: MediaDbType, base_path: str) -> Path:
 
     # Get all media group folders using the source_matrix in the config
-    def get_media_group_folders(self, db_type: MediaDbType) -> MediaGroupFolderList:
+    def get_media_group_folders(self, base_path: Path=None) -> MediaGroupFolderList:
         """Get all media group folders based on the source matrix configuration.
         
         Returns:
             MediaGroupFolderList: List of media group folder paths
         """
-        base_path = self.get_db_path(db_type)
 
         media_groups = []
         source_matrix = self.config.get("source_matrix")
@@ -93,15 +97,21 @@ class MediaManager:
 
         return MediaGroupFolderList(groups=list(unique_media_groups.values()))
 
-    def search_media(self, request: SearchRequest) -> MediaItemGroup:
+    def search_media(self, request: SearchRequest, base_path: str=None) -> MediaItemGroup:
         """Search media in cache by title and optional parameters"""
 
         # For each db_type get the base path and add to list
         all_items = []
-        for db_type in request.db_type:
-            result = self._search_media_db(request, db_type)
+        if base_path:
+            base_path_conv = Path(base_path)
+            result = self._search_media_db(request, base_path_conv, MediaDbType.UNDEFINED)
             if result and result.items:
                 all_items.extend(result.items)
+        else:
+            for db_type in request.db_type:
+                result = self._search_media_db(request, self.get_db_path(db_type), db_type)
+                if result and result.items:
+                    all_items.extend(result.items)
 
         # Return combined results
         return MediaItemGroup(items=all_items)
@@ -124,14 +134,27 @@ class MediaManager:
         """Get the relative path for the media item based on the media type and quality"""
         return os.path.join(f"{media_prefix}-{quality}", title, file_name)
 
-    def _search_media_db(self, request: SearchRequest, db_type: MediaDbType) -> MediaItemGroup:
+    def get_relative_path_to_title(self, title_path: str, file_path: str) -> str:
+        """Get the subpath of the file relative to its title folder by removing title_path"""
+        # Convert both paths to Path objects
+        full_path = Path(file_path)
+        title_path_obj = Path(title_path)
+        
+        try:
+            # Get the relative path by removing the title_path
+            return str(full_path.relative_to(title_path_obj))
+        except ValueError:
+            # If paths are not related, return empty string
+            return ""
+
+    def _search_media_db(self, request: SearchRequest, base_path: Path, db_type: MediaDbType) -> MediaItemGroup:
         """Search media in cache by title and optional parameters"""
 
         # Create a media filter
         media_filter = MediaFilter(request)
 
         # Get all media group folders
-        media_groups = self.get_media_group_folders(db_type)
+        media_groups = self.get_media_group_folders(base_path)
 
         # Filter groups based on request
         filtered_media_groups = []
@@ -213,6 +236,10 @@ class MediaManager:
             ),
             db_type=db_type,
             full_path=file.as_posix(),
+            relative_title_path=self.get_relative_path_to_title(
+                title_path=media_group.path,
+                file_path=file.as_posix()
+            ), 
             media_type=media_group.media_type,
             media_prefix=media_group.media_prefix,
             quality=media_group.quality,

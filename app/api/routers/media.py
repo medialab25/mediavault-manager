@@ -50,27 +50,26 @@ async def merge_media(refresh: bool = False, dry_run: bool = False) -> dict:
             logger.error(f"Validation error during media merge: {str(e.detail)}")
             raise APIResponse.error(str(e.detail))
         
-        # Get user and group IDs
-        user_id = int(settings.MEDIA_MERGE["user"])
-        group_id = int(settings.MEDIA_MERGE["group"])
-        
+
         # Create MediaMerger instance
-        media_merger = MediaMerger(user_id=user_id, group_id=group_id)
+        media_merger = MediaMerger(settings.MEDIA_LIBRARY)
+        results = media_merger.merge_libraries(dry_run=dry_run)
+
         
-        # Call merge_libraries for each media type
-        results = {}
-        for media_type, config in settings.MEDIA_LIBRARY["source_matrix"].items():
-            if config.get("merged_path"):
-                result = media_merger.merge_libraries(
-                    media_type=config.get("prefix", media_type),
-                    source_paths=[settings.MEDIA_LIBRARY["default_source_path"]],
-                    quality_list=config["quality_order"],
-                    merged_path=config["merged_path"],
-                    dry_run=dry_run
-                )
-                results[media_type] = result
+        # # Call merge_libraries for each media type
+        # results = {}
+        # for media_type, config in settings.MEDIA_LIBRARY["source_matrix"].items():
+        #     if config.get("merged_path"):
+        #         result = media_merger.merge_libraries(
+        #             media_type=config.get("prefix", media_type),
+        #             source_paths=[settings.MEDIA_LIBRARY["default_source_path"]],
+        #             quality_list=config["quality_order"],
+        #             merged_path=config["merged_path"],
+        #             dry_run=dry_run
+        #         )
+        #         results[media_type] = result
         
-        logger.debug(f"Media merge completed: {results}")
+        # logger.debug(f"Media merge completed: {results}")
         
         # Refresh media if requested
         refresh_result = None

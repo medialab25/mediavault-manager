@@ -1,9 +1,14 @@
 import os
+from pathlib import Path
 import shutil
 from enum import Enum
 from dataclasses import dataclass
-from typing import List, Dict
+from typing import Any, List, Dict
 
+from app.api.managers.media_manager import MediaManager
+from app.api.managers.media_query import MediaQuery
+from app.api.models.media_models import MediaDbType, MediaItem, MediaItemGroupDict
+from app.api.models.search_request import SearchRequest
 # Merge library type
 # Inputs:
 # - media_type: string. e.g. 'tv', 'movies'
@@ -27,16 +32,71 @@ class MergeLibrariesResult:
     status: FolderOperationStatus
 
 class MediaMerger:
-    def __init__(self, user_id: int, group_id: int):
-        self.user_id = user_id
-        self.group_id = group_id
-        self.merged_folders = {}  # Dictionary to track merged folders and their quality
-        self.added_folders = {}  # Dictionary to track added folders and their quality
-        self.updated_folders = {}  # Dictionary to track updated folders and their quality
-        self.deleted_folders = {}  # Dictionary to track deleted folders and their quality
-        self.skipped_folders = {}  # Dictionary to track skipped folders and their quality
+    def __init__(self, config: dict[str, Any]):
+        self.config = config
+        self.user_id = config["user"]
+        self.group_id = config["group"]
+        self.media_manager = MediaManager(config)
 
-    def merge_libraries(self, media_type: str, source_paths: list[str], quality_list: list[str], merged_path: str, dry_run: bool = False) -> MergeLibrariesResult:
+    def merge_libraries(self, dry_run: bool = False) -> dict[str, Any]:
+
+        add_media_items = []
+        update_media_items = []
+        delete_media_items = []
+        delete_folders = []
+
+        for media_type, config in self.config["source_matrix"].items():
+            if not config.get("merged_path"):
+                continue
+
+            if not config.get("quality_order"):
+                continue
+
+            # Get quality and prefix from config
+            quality_order = config["quality_order"]
+            prefix = config["prefix"]
+            merged_path = config["merged_path"]
+
+            # Get all from this quality and prefix
+            allowed_folders = []
+            merged_items_dict: Dict[str, MediaItem] = {}
+
+            for quality in reversed(quality_order):
+                media_quality_items = self.media_manager.search_media(
+                    SearchRequest(
+                        quality=quality, 
+                        media_prefix=prefix,
+                        db_type=[MediaDbType.MEDIA]
+                    )
+                )  
+
+                # Get merged items
+                current_quality_merged_items = self.media_manager.search_media(
+                    SearchRequest(
+                        quality=quality,
+                        media_prefix=prefix                        
+                    ), merged_path
+                )
+
+                allowed_folders.append(f"{prefix}-{quality}")
+
+                for item in media_quality_items.items:
+                    # get title/relative_path
+                    rel_path = Path(item.title) / item.relative_title_path;
+                    merged_items_dict[rel_path] = item
+
+
+            # Get list of folders to delete
+            if os.path.exists(merged_path):
+                for folder in os.listdir(merged_path):
+                    if folder not in allowed_folders:
+                        delete_folders.append(os.path.join(merged_path, folder))   
+
+        return {}
+
+    def merge_libraries1(self, media_type: str, source_paths: list[str], quality_list: list[str], merged_path: str, dry_run: bool = False) -> MergeLibrariesResult:
+        success = True
+        self.merged_folders = {}  # Reset merged folders
         success = True
         self.merged_folders = {}  # Reset merged folders
         self.added_folders = {}  # Reset added folders
