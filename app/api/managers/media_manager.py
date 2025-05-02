@@ -3,9 +3,9 @@ from pathlib import Path
 from app.api.managers.media_filter import MediaFilter
 from app.api.models.media_models import (
     ExtendedMediaInfo, MediaDbType, MediaGroupFolder, MediaGroupFolderList,
-    MediaFileItem, MediaItemFolder, MediaItem, MediaItemGroup
+    MediaFileItem, MediaItemFolder, MediaItem, MediaItemGroup, MediaItemGroupList
 )
-from app.api.models.search_request import SearchCacheExportFilter, SearchRequest
+from app.api.models.search_request import SearchCacheExportFilter, SearchHasFilter, SearchRequest
 from app.core.config import Config
 from typing import Any, List, Optional, Tuple
 import re
@@ -81,7 +81,8 @@ class MediaManager:
                         quality=quality,
                         path=str(group_folder),
                         media_folder_items=[],
-                        cache_export=config.get("cache_export", False)
+                        cache_export=config.get("cache_export", False),
+                        merged_path=config.get("merged_path", None)
                     ))
 
         # De-duplicate media_groups based on prefix and quality properties
@@ -106,12 +107,42 @@ class MediaManager:
         # Return combined results
         return MediaItemGroup(items=all_items)
 
+    def search_media_grouped(self, request: SearchRequest) -> MediaItemGroupList:
+        """Search media in cache by title and optional parameters"""
+        media_items = self.search_media(request)
+
+        # Group media items by media_prefix and quality
+        grouped_media_items = {}
+        for media_item in media_items.items:
+            key = (media_item.media_prefix, media_item.quality)
+            if key not in grouped_media_items:
+                grouped_media_items[key] = MediaItemGroup(items=[])   
+            grouped_media_items[key].items.append(media_item)
+
+        # Return the grouped media items
+        return MediaItemGroupList(groups=list(grouped_media_items.values()))
+
+    def search_media_groups(self, request: SearchRequest) -> MediaGroupFolderList:
+        """Search media groups in cache by title and optional parameters"""
+        all_items = []
+        for db_type in request.db_type:
+            result = self._search_media_groups_db(request, db_type)
+            if result and result.groups:
+                all_items.extend(result.groups)
+
+        return MediaGroupFolderList(groups=all_items)
+    
+
     def get_media_target_path(self, db_type: MediaDbType, media_item: MediaItem) -> Path:
         """Get the target path for the media item based on the media type and quality"""
         media_prefix = media_item.media_prefix
         quality = media_item.quality
         file_name = media_item.full_path.split("/")[-1]
         return self.get_db_path(db_type) / f"{media_prefix}-{quality}" / media_item.title / file_name
+
+    def get_media_target_matrix_path(self,base_path: Path, media_prefix: str, quality: str) -> Path:
+        """Get the target path for the media item based on the media type and quality"""
+        return Path(base_path) / Path(f"{media_prefix}-{quality}")
 
     def get_media_relative_path_from_media_item(self, media_item: MediaItem) -> str:
         """Get the relative path for the media item based on the media type and quality"""
@@ -124,13 +155,7 @@ class MediaManager:
         """Get the relative path for the media item based on the media type and quality"""
         return os.path.join(f"{media_prefix}-{quality}", title, file_name)
 
-    def _search_media_db(self, request: SearchRequest, db_type: MediaDbType) -> MediaItemGroup:
-        """Search media in cache by title and optional parameters"""
-
-        # Create a media filter
-        media_filter = MediaFilter(request)
-
-        # Get all media group folders
+    def _search_media_groups_db(self, request: SearchRequest, db_type: MediaDbType) -> MediaGroupFolderList:
         media_groups = self.get_media_group_folders(db_type)
 
         # Filter groups based on request
@@ -149,14 +174,30 @@ class MediaManager:
             if request.quality and request.quality != media_group.quality:
                 continue
 
+            if request.has_merged_path == SearchHasFilter.YES and not media_group.merged_path:
+                continue
+
+            if request.has_merged_path == SearchHasFilter.NO and media_group.merged_path:
+                continue
+
             # Get the media items
-            filtered_media_groups.append(media_group)   
+            filtered_media_groups.append(media_group)
+
+        return MediaGroupFolderList(groups=filtered_media_groups)
+    
+    def _search_media_db(self, request: SearchRequest, db_type: MediaDbType) -> MediaItemGroup:
+        """Search media in cache by title and optional parameters"""
+
+        # Create a media filter
+        media_filter = MediaFilter(request)
+
+        filtered_media_groups = self.search_media_groups(request)
 
         # Initialize empty list for media items
         media_items = []
 
         # Search through each media group
-        for media_group in filtered_media_groups:
+        for media_group in filtered_media_groups.groups:
             path = Path(media_group.path)
             
             # Search through each folder in the media group

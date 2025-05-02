@@ -9,6 +9,11 @@ class SearchCacheExportFilter(Enum):
     APPLY = "apply"
     EXCLUDE = "exclude"
 
+class SearchHasFilter(Enum):
+    ALL = "all"
+    YES = "yes"
+    NO = "no"
+
 class SearchRequest(BaseModel):
     """
     Model for handling search API requests.
@@ -23,4 +28,5 @@ class SearchRequest(BaseModel):
     media_prefix: Optional[str] = None # Optional media prefix to search for
     db_type: Optional[List[MediaDbType]] = [MediaDbType.MEDIA]  # List of database types to search in
     cache_export_filter: Optional[SearchCacheExportFilter] = SearchCacheExportFilter.ALL # Whether to include cache export in the search
+    has_merged_path: Optional[SearchHasFilter] = SearchHasFilter.ALL # Whether to include merged path in the search
 

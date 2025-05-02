@@ -22,5 +22,7 @@ class MediaFilter:
             return False
         if self.request.db_type and media_item.db_type not in self.request.db_type:
             return False
+        if self.request.media_prefix and self.request.media_prefix != media_item.media_prefix:
+            return False
         
         return True

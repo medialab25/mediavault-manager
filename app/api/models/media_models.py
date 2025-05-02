@@ -12,7 +12,6 @@ class ExtendedMediaInfo(BaseModel):
     size: int
     created_at: float
     updated_at: float
-    metadata: Optional[dict] = None
 
 class MediaFileItem(BaseModel):
     path: str
@@ -31,6 +30,7 @@ class MediaGroupFolder(BaseModel):
     media_prefix: str
     quality: str
     cache_export: bool
+    merged_path: Optional[str] = None
     path: str
     media_folder_items: List[MediaItemFolder] = []
 
@@ -48,6 +48,8 @@ class MediaItem(BaseModel):
     season: Optional[int] = None
     episode: Optional[int] = None
     extended: Optional[ExtendedMediaInfo] = None
+    metadata: Optional[dict] = None
+
 
 class MediaItemGroup(BaseModel):
     items: List[MediaItem]
