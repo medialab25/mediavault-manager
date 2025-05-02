@@ -8,6 +8,7 @@ from app.api.models.media_models import MediaDbType
 from app.core.config import Config
 from app.api.managers.media_manager import MediaManager
 from app.core.status import Status
+import json
 
 app = typer.Typer()
 media_app = typer.Typer(help="Media management commands")
@@ -47,14 +48,26 @@ async def make_request(method: str, endpoint: str, data: Optional[dict] = None) 
                 return result
             return result
         except httpx.HTTPError as e:
-            error_detail = e.response.json() if e.response and e.response.content else {"message": str(e)}
-            if isinstance(error_detail, dict) and "detail" in error_detail:
-                if isinstance(error_detail["detail"], dict):
-                    console.print(f"[red]Error:[/red] {error_detail['detail'].get('message', str(e))}")
+            try:
+                error_detail = e.response.json() if e.response and e.response.content else {"message": str(e)}
+                if isinstance(error_detail, dict):
+                    if "detail" in error_detail:
+                        if isinstance(error_detail["detail"], dict):
+                            # Handle APIResponse error format
+                            if "message" in error_detail["detail"]:
+                                console.print(f"[red]Error:[/red] {error_detail['detail']['message']}")
+                            else:
+                                console.print(f"[red]Error:[/red] {error_detail['detail']}")
+                        else:
+                            console.print(f"[red]Error:[/red] {error_detail['detail']}")
+                    else:
+                        console.print(f"[red]Error:[/red] {str(e)}")
                 else:
-                    console.print(f"[red]Error:[/red] {error_detail['detail']}")
-            else:
-                console.print(f"[red]Error:[/red] {str(e)}")
+                    console.print(f"[red]Error:[/red] {str(e)}")
+            except json.JSONDecodeError:
+                # Handle non-JSON error responses
+                error_message = e.response.text if e.response and e.response.text else str(e)
+                console.print(f"[red]Error:[/red] {error_message}")
             raise typer.Exit(1)
 
 # Media commands
@@ -68,31 +81,44 @@ def refresh():
 @media_app.command()
 def merge(
     refresh: bool = typer.Option(False, "--refresh", "-r", help="Refresh the media library after merging"),
-    details: bool = typer.Option(False, "--details", "-d", help="Show detailed changes for each media type")
+    details: bool = typer.Option(False, "--details", "-d", help="Show detailed changes for each media type"),
+    dry_run: bool = typer.Option(False, "--dry-run", "-n", help="Show what would be merged without making changes"),
+    json: bool = typer.Option(False, "--json", "-j", help="Show the result in JSON format")
 ):
     """Merge the media library"""
     console.print("[yellow]Merging media library...[/yellow]")
-    result = asyncio.run(make_request("POST", f"api/media/merge?refresh={str(refresh).lower()}"))
+    result = asyncio.run(make_request("POST", f"api/media/merge?refresh={str(refresh).lower()}&dry_run={str(dry_run).lower()}"))
     console.print(f"[green]Success:[/green] {result['message']}")
     
+    if json:
+        console.print_json(data=result)
+
     # Display changes in a table only if details option is specified
     if details and result.get('data', {}).get('merge'):
         for media_type, merge_result in result['data']['merge'].items():
             table = Table(title=f"{media_type.title()} Changes")
             table.add_column("Type", style="cyan")
-            table.add_column("Count", style="green")
+            table.add_column("Folder", style="yellow")
+            table.add_column("Quality", style="green")
             
-            # Count added folders
-            added_count = len(merge_result.get('added_folders', {}))
-            table.add_row("Added", str(added_count))
+            # Add added folders
+            for folder, quality in merge_result.get('added_folders', {}).items():
+                table.add_row("Added", folder, quality)
             
-            # Count updated folders
-            updated_count = len(merge_result.get('updated_folders', {}))
-            table.add_row("Updated", str(updated_count))
+            # Add updated folders
+            for folder, quality in merge_result.get('updated_folders', {}).items():
+                table.add_row("Updated", folder, quality)
             
-            # Count deleted folders
-            deleted_count = len(merge_result.get('deleted_folders', []))
-            table.add_row("Removed", str(deleted_count))
+            # Add deleted folders
+            for folder, quality in merge_result.get('deleted_folders', {}).items():
+                table.add_row("Removed", folder, quality)
+            
+            # Add skipped folders
+            for folder, quality in merge_result.get('skipped_folders', {}).items():
+                table.add_row("Skipped", folder, quality)
+            
+            # Add status row
+            table.add_row("Status", merge_result.get('status', 'unknown'), "")
             
             console.print(table)
     

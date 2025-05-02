@@ -32,7 +32,7 @@ async def refresh_media():
         raise APIResponse.error(str(e))
     
 @router.post("/merge", status_code=200)
-async def merge_media(refresh: bool = False) -> dict:
+async def merge_media(refresh: bool = False, dry_run: bool = False) -> dict:
     """Merge the media library by calling the Media Merge API.
     
     Args:
@@ -40,9 +40,15 @@ async def merge_media(refresh: bool = False) -> dict:
     """
     try:
         logger.debug("Starting media merge")
+        logger.debug(f"Media library config: {settings.MEDIA_LIBRARY}")
+        logger.debug(f"Media merge settings: {settings.MEDIA_MERGE}")
         
         # Validate settings
-        validate_media_merge_settings(settings.MEDIA_LIBRARY, settings.MEDIA_MERGE)
+        try:
+            validate_media_merge_settings(settings.MEDIA_LIBRARY, settings.MEDIA_MERGE)
+        except HTTPException as e:
+            logger.error(f"Validation error during media merge: {str(e.detail)}")
+            raise APIResponse.error(str(e.detail))
         
         # Get user and group IDs
         user_id = int(settings.MEDIA_MERGE["user"])
@@ -70,14 +76,15 @@ async def merge_media(refresh: bool = False) -> dict:
         if refresh:
             refresh_result = await media_server.refresh_media()
             logger.debug(f"Media refresh completed: {refresh_result}")
-            
-        return APIResponse.success(
+
+        response = APIResponse.success(
             data={
                 "merge": results,
                 "refresh": refresh_result if refresh else None
             },
             message="Media merge completed successfully"
         )
+        return response.model_dump()
     except Exception as e:
         logger.error(f"Error during media merge: {str(e)}", exc_info=True)
         raise APIResponse.error(str(e)) 

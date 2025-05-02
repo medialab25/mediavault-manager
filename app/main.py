@@ -4,6 +4,8 @@ from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from datetime import datetime
 from contextlib import asynccontextmanager
+import logging
+import sys
 
 from app.core.settings import settings
 from app.api.routers import views, system
@@ -12,6 +14,16 @@ from app.api.routers.search import router as search_router
 from app.api.routers.cache import router as cache_router
 from app.api.routers.sync import router as sync_router
 from app.scheduler import start_scheduler, stop_scheduler
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG if settings.DEBUG else logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler('/tmp/mediavault-manager.log')
+    ]
+)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

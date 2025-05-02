@@ -29,10 +29,29 @@ def validate_media_library_config(media_library_config: Dict[str, Any]) -> None:
                 detail=f"Invalid configuration for media type {media_type}"
             )
 
-        if not isinstance(config["quality_order"], list) or not config["quality_order"] or not config["merged_path"]:
+        if not isinstance(config["quality_order"], list) or not config["quality_order"]:
             raise HTTPException(
                 status_code=500,
-                detail=f"Invalid quality_order or merged_path for {media_type}"
+                detail=f"Invalid quality_order for {media_type}"
+            )
+            
+        if not config["merged_path"]:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Invalid merged_path for {media_type}"
+            )
+            
+        # Validate optional fields if present
+        if "prefix" in config and not isinstance(config["prefix"], str):
+            raise HTTPException(
+                status_code=500,
+                detail=f"Invalid prefix for {media_type}"
+            )
+            
+        if "media_type" in config and not isinstance(config["media_type"], str):
+            raise HTTPException(
+                status_code=500,
+                detail=f"Invalid media_type for {media_type}"
             )
 
 def validate_media_merge_settings(media_library_config: Dict[str, Any], media_merge_settings: Dict[str, Any]) -> None:
