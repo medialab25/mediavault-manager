@@ -19,6 +19,13 @@ class Settings(BaseSettings):
     ALLOWED_EXTENSIONS: set = {"jpg", "jpeg", "png", "gif", "mp4", "mp3"}
     MAX_CONTENT_LENGTH: int = 16 * 1024 * 1024  # 16MB
     
+    # File type definitions
+    FILE_TYPES: Dict[str, list] = {
+        "video": ["mp4", "mkv", "avi", "mov", "wmv", "flv", "mpeg", "mpg", "m4v", "webm"],
+        "audio": ["mp3", "m4a", "aac", "wav"],
+        "subtitles": ["srt", "ass", "ssa", "vtt", "sub"]
+    }
+    
     # Jellyfin settings
     JELLYFIN: Dict[str, str] = {
         "url": "",

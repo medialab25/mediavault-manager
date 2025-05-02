@@ -157,6 +157,14 @@ class CacheManager:
         remove_shadow_items = media_query.get_items_by_ids(remove_cache_items, MediaDbType.SHADOW)
         add_shadow_items = media_query.get_items_by_ids(add_cache_items, MediaDbType.MEDIA)
 
+        if dry_run:
+            return MediaItemGroupDict(
+                groups={
+                    "remove_cache": remove_cache_items,
+                    "add_cache": add_cache_items,
+                }
+            )
+
         # Delete the items from the cache
         for item in remove_cache_items:
             # Only if the db_type is cache
