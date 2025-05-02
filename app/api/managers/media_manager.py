@@ -5,7 +5,7 @@ from app.api.models.media_models import (
     ExtendedMediaInfo, MediaDbType, MediaGroupFolder, MediaGroupFolderList,
     MediaFileItem, MediaItemFolder, MediaItem, MediaItemGroup
 )
-from app.api.models.search_request import SearchRequest
+from app.api.models.search_request import SearchCacheExportFilter, SearchRequest
 from app.core.config import Config
 from typing import Any, List, Optional, Tuple
 import re
@@ -59,24 +59,16 @@ class MediaManager:
             return self.cache_shadow_path
 
     # Get all media group folders using the source_matrix in the config
-    def get_media_group_folders_slim(self) -> list[str]:
-        """Get all media group folders based on the source matrix configuration.
-        
-        Returns:
-            list[str]: List of media group folder paths
-        """
-        return [group.path for group in self.get_media_group_folders(self.media_base_path).groups]
-
-    # Get all media group folders using the source_matrix in the config
-    def get_media_group_folders(self, base_path: Path) -> MediaGroupFolderList:
+    def get_media_group_folders(self, db_type: MediaDbType) -> MediaGroupFolderList:
         """Get all media group folders based on the source matrix configuration.
         
         Returns:
             MediaGroupFolderList: List of media group folder paths
         """
-        source_matrix = self.config.get("source_matrix")
+        base_path = self.get_db_path(db_type)
+
         media_groups = []
-        
+        source_matrix = self.config.get("source_matrix")
         for media_type_element, config in source_matrix.items():
             for quality in config["quality_order"]:
                 media_type = config["media_type"] if config["media_type"] else media_type_element
@@ -88,10 +80,18 @@ class MediaManager:
                         media_prefix=media_prefix,
                         quality=quality,
                         path=str(group_folder),
-                        media_folder_items=[]
+                        media_folder_items=[],
+                        cache_export=config.get("cache_export", False)
                     ))
-                    
-        return MediaGroupFolderList(groups=media_groups)
+
+        # De-duplicate media_groups based on prefix and quality properties
+        unique_media_groups = {}
+        for media_group in media_groups:
+            key = (media_group.media_prefix, media_group.quality)
+            if key not in unique_media_groups:
+                unique_media_groups[key] = media_group
+
+        return MediaGroupFolderList(groups=list(unique_media_groups.values()))
 
     def search_media(self, request: SearchRequest) -> MediaItemGroup:
         """Search media in cache by title and optional parameters"""
@@ -99,9 +99,7 @@ class MediaManager:
         # For each db_type get the base path and add to list
         all_items = []
         for db_type in request.db_type:
-            base_path = self.get_db_path(db_type)
-            
-            result = self._search_media_db(request, base_path, db_type)
+            result = self._search_media_db(request, db_type)
             if result and result.items:
                 all_items.extend(result.items)
 
@@ -126,18 +124,25 @@ class MediaManager:
         """Get the relative path for the media item based on the media type and quality"""
         return os.path.join(f"{media_prefix}-{quality}", title, file_name)
 
-    def _search_media_db(self, request: SearchRequest, base_path: Path, db_type: MediaDbType) -> MediaItemGroup:
+    def _search_media_db(self, request: SearchRequest, db_type: MediaDbType) -> MediaItemGroup:
         """Search media in cache by title and optional parameters"""
 
         # Create a media filter
         media_filter = MediaFilter(request)
 
         # Get all media group folders
-        media_groups = self.get_media_group_folders(base_path)
+        media_groups = self.get_media_group_folders(db_type)
 
         # Filter groups based on request
         filtered_media_groups = []
         for media_group in media_groups.groups:
+
+            if request.cache_export_filter == SearchCacheExportFilter.APPLY and not media_group.cache_export:
+                continue
+
+            if request.cache_export_filter == SearchCacheExportFilter.EXCLUDE and media_group.cache_export:
+                continue
+
             if request.media_type and request.media_type != media_group.media_type:
                 continue
             

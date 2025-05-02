@@ -154,14 +154,12 @@ class CacheManager:
 
         remove_cache_items = media_query.get_items_by_ids(remove_cache_items, MediaDbType.CACHE)
         add_cache_items = media_query.get_items_by_ids(add_cache_items, MediaDbType.MEDIA)
-        remove_shadow_items = media_query.get_items_by_ids(remove_cache_items, MediaDbType.SHADOW)
-        add_shadow_items = media_query.get_items_by_ids(add_cache_items, MediaDbType.MEDIA)
 
         if dry_run:
             return MediaItemGroupDict(
                 groups={
-                    "remove_cache": remove_cache_items,
-                    "add_cache": add_cache_items,
+                    "remove_cache": MediaItemGroup(items=remove_cache_items),
+                    "add_cache": MediaItemGroup(items=add_cache_items),
                 }
             )
 
@@ -169,6 +167,13 @@ class CacheManager:
         for item in remove_cache_items:
             # Only if the db_type is cache
             os.remove(item.full_path)
+
+
+
+        remove_shadow_items = media_query.get_items_by_ids(remove_cache_items, MediaDbType.SHADOW)
+        add_shadow_items = media_query.get_items_by_ids(add_cache_items, MediaDbType.MEDIA)
+
+
         
         # Move the items from SHADOW to MEDIA
         for item in remove_shadow_items:
@@ -211,7 +216,6 @@ class CacheManager:
         """Clean the update data"""
         self.update_data_manager.clear_cache_updates()
 
-        # Return the results in the expected format
     def sync_cache1(self, dry_run: bool = False) -> MediaItemGroupDict:
         """Sync the cache with the media library by moving items from pending to cache
         

@@ -5,6 +5,7 @@ from typing import Optional
 from rich.console import Console
 from rich.table import Table
 from app.api.models.media_models import MediaDbType
+from app.api.models.search_request import SearchCacheExportFilter
 from app.core.config import Config
 from app.api.managers.media_manager import MediaManager
 from app.core.status import Status
@@ -136,7 +137,8 @@ def search(
     add_extended_info: bool = typer.Option(False, "--extended-info", "-e", help="Add extended info"),
     season: Optional[int] = typer.Option(None, "--season", "-s", help="Season number"),
     episode: Optional[int] = typer.Option(None, "--episode", "-e", help="Episode number"),
-    db_type: Optional[str] = typer.Option("media", "--db-type", "-d", help="Database types (comma-separated: media,cache,shadow)")
+    db_type: Optional[str] = typer.Option("media", "--db-type", "-d", help="Database types (comma-separated: media,cache,shadow)"),
+    cache_export_filter: Optional[str] = typer.Option(None, "--cache-export-filter", "-c", help="Cache export filter (comma-separated: all,cache_export,not_cache_export)")
 ):
     """Search for media using the search request endpoint"""
     try:
@@ -174,6 +176,12 @@ def search(
                     console.print(f"[red]Error:[/red] Invalid database type '{t}'. Valid types are: {', '.join(t.value for t in MediaDbType)}")
                     raise typer.Exit(1)
             params["db_type"] = db_type
+        if cache_export_filter is not None:
+            try:
+                params["cache_export_filter"] = SearchCacheExportFilter(cache_export_filter).value
+            except ValueError:
+                console.print(f"[red]Error:[/red] Invalid cache export filter '{cache_export_filter}'. Valid types are: {', '.join(t.value for t in SearchCacheExportFilter)}")
+                raise typer.Exit(1)
             
         # Convert params to query string
         query_string = "&".join(f"{k}={v}" for k, v in params.items())

@@ -1,7 +1,13 @@
+from enum import Enum
 from typing import Optional, List
 from pydantic import BaseModel
 
 from app.api.models.media_models import MediaDbType
+
+class SearchCacheExportFilter(Enum):
+    ALL = "all"
+    APPLY = "apply"
+    EXCLUDE = "exclude"
 
 class SearchRequest(BaseModel):
     """
@@ -16,3 +22,5 @@ class SearchRequest(BaseModel):
     episode: Optional[int] = None   # Optional episode number to search for
     media_prefix: Optional[str] = None # Optional media prefix to search for
     db_type: Optional[List[MediaDbType]] = [MediaDbType.MEDIA]  # List of database types to search in
+    cache_export_filter: Optional[SearchCacheExportFilter] = SearchCacheExportFilter.ALL # Whether to include cache export in the search
+

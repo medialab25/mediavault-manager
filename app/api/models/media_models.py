@@ -30,6 +30,7 @@ class MediaGroupFolder(BaseModel):
     media_type: str
     media_prefix: str
     quality: str
+    cache_export: bool
     path: str
     media_folder_items: List[MediaItemFolder] = []
 

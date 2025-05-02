@@ -15,6 +15,7 @@
     },
     "MEDIA_LIBRARY": {
         "default_source_path": "/srv/storage/media",
+        "default_full_source_path": "/srv/storage-mfs/media",
         "source_matrix": {
             "movies": {
                 "prefix": "movies",
@@ -31,46 +32,13 @@
             "tv-1080p": {
                 "prefix": "tv",
                 "media_type": "tv",
-                "quality_order": ["uhd"],
-                "merged_path": "/srv/storage/media/tv-1080p"
+                "quality_order": ["hd"],
+                "merged_path": "/srv/storage/media/export/tv-1080p",
+                "cache_export": true
             }
         },
-        "cache_source_paths": [
-            "/srv/storage/media/movies-merged",
-            "/srv/storage/media/tv-merged",
-            "/srv/storage/media/tv-1080p"
-        ],
         "cache_path": "/srv/disks/media-ssd/media",
         "cache_shadow_path": "/srv/storage/media/media-shadow-cache",
         "system_data_path": "/srv/storage/media/system-data"
-    },
-    "FILE_TYPES": {
-        "video": [
-            "mp4",
-            "mkv",
-            "avi",
-            "mov",
-            "wmv",
-            "flv",
-            "mpeg",
-            "mpg",
-            "m4v",
-            "webm",
-            "m4v",
-            "webm"
-        ],
-        "audio": [
-            "mp3",
-            "m4a",
-            "aac",
-            "wav"
-        ],
-        "subtitles": [
-            "srt",
-            "ass",
-            "ssa",
-            "vtt",
-            "sub"
-        ]
     }
 } 

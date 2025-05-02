@@ -22,7 +22,8 @@ def search_media(
     id: str = Query(None, description="Media ID to search for"),
     season: int = Query(None, description="Season number"),
     episode: int = Query(None, description="Episode number"),
-    db_type: str = Query("media", description="Comma-separated list of database types (media,cache,shadow)")
+    db_type: str = Query("media", description="Comma-separated list of database types (media,cache,shadow)"),
+    cache_export_filter: str = Query("all", description="Cache export filter (all,apply,exclude)")
 ):
     """Search the media library by calling the Media Library API."""
     try:
@@ -46,7 +47,8 @@ def search_media(
             id=id,
             season=season,
             episode=episode,
-            db_type=db_types
+            db_type=db_types,
+            cache_export_filter=cache_export_filter
         )
         result = media_manager.search_media(request)
         logger.debug(f"Media search completed: {result}")
