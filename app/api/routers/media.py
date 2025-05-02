@@ -65,7 +65,8 @@ async def merge_media(refresh: bool = False, dry_run: bool = False) -> dict:
                     media_type=config.get("prefix", media_type),
                     source_paths=[settings.MEDIA_LIBRARY["default_source_path"]],
                     quality_list=config["quality_order"],
-                    merged_path=config["merged_path"]
+                    merged_path=config["merged_path"],
+                    dry_run=dry_run
                 )
                 results[media_type] = result
         

@@ -31,7 +31,7 @@
             "tv-1080p": {
                 "prefix": "tv",
                 "media_type": "tv",
-                "quality_order": ["hd"],
+                "quality_order": ["uhd"],
                 "merged_path": "/srv/storage/media/tv-1080p"
             }
         },

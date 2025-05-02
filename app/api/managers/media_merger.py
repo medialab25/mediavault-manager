@@ -36,7 +36,7 @@ class MediaMerger:
         self.deleted_folders = {}  # Dictionary to track deleted folders and their quality
         self.skipped_folders = {}  # Dictionary to track skipped folders and their quality
 
-    def merge_libraries(self, media_type: str, source_paths: list[str], quality_list: list[str], merged_path: str) -> MergeLibrariesResult:
+    def merge_libraries(self, media_type: str, source_paths: list[str], quality_list: list[str], merged_path: str, dry_run: bool = False) -> MergeLibrariesResult:
         success = True
         self.merged_folders = {}  # Reset merged folders
         self.added_folders = {}  # Reset added folders
@@ -53,15 +53,17 @@ class MediaMerger:
                     folders = os.listdir(media_path)
 
                     for folder in folders:
-                        self.merge_folder(media_path, folder, merged_path, quality, quality_list)
+                        self.merge_folder(media_path, folder, merged_path, quality, quality_list, dry_run)
 
         # Cleanup folders in merged_path that are not in merged_folders
-        for folder in os.listdir(merged_path):
-            if folder not in self.merged_folders:
-                print(f"Removing folder {folder} from {merged_path} because it is not in merged_folders")
-                quality = self.get_folder_quality_flags(os.path.join(merged_path, folder), quality_list)
-                shutil.rmtree(os.path.join(merged_path, folder))
-                self.deleted_folders[folder] = quality if quality else "unknown"
+        if os.path.exists(merged_path):
+            for folder in os.listdir(merged_path):
+                if folder not in self.merged_folders:
+                    print(f"Removing folder {folder} from {merged_path} because it is not in merged_folders")
+                    quality = self.get_folder_quality_flags(os.path.join(merged_path, folder), quality_list)
+                    if not dry_run:
+                        shutil.rmtree(os.path.join(merged_path, folder))
+                    self.deleted_folders[folder] = quality if quality else "unknown"
 
         return MergeLibrariesResult(
             added_folders=self.added_folders,
@@ -73,9 +75,10 @@ class MediaMerger:
 
     def get_folder_flags(self, media_path: str) -> list[str]:
         folder_flags = []
-        for file in os.listdir(media_path):
-            if file.startswith('.'):
-                folder_flags.append(file[1:])
+        if os.path.exists(media_path):
+            for file in os.listdir(media_path):
+                if file.startswith('.'):
+                    folder_flags.append(file[1:])
         return folder_flags
 
     def get_folder_quality_flags(self, folder: str, quality_list: list[str]) -> str:
@@ -85,15 +88,16 @@ class MediaMerger:
                 return flag
         return None
 
-    def merge_folder(self, media_path: str, folder: str, merged_path: str, quality: str, quality_list: list[str]) -> bool:
+    def merge_folder(self, media_path: str, folder: str, merged_path: str, quality: str, quality_list: list[str], dry_run: bool = False) -> bool:
         success = True
 
         source_path = f"{media_path}/{folder}"
         target_path = f"{merged_path}/{folder}"
         if not os.path.exists(target_path):
             try:
-                os.makedirs(target_path, mode=0o755)
-                os.chown(target_path, self.user_id, self.group_id)
+                if not dry_run:
+                    os.makedirs(target_path, mode=0o755)
+                    os.chown(target_path, self.user_id, self.group_id)
             except PermissionError as e:
                 return False
 
@@ -124,6 +128,9 @@ class MediaMerger:
 
         self.merged_folders[folder] = quality
         
+        if dry_run:
+            return True
+
         if os.path.exists(target_path):
             for root, dirs, files in os.walk(target_path, topdown=False):
                 for name in files:
