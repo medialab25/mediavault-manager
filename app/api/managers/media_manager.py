@@ -245,3 +245,11 @@ class MediaManager:
             episode=episode,
             extended=extended
         )
+
+    def populate_extended_info(self, media_item: MediaItem) -> MediaItem:
+        """Populate the extended info for the media item"""
+        media_item.extended = ExtendedMediaInfo(
+            size=media_item.size,
+            created_at=media_item.created_at,
+            updated_at=media_item.updated_at,
+            metadata=media_item.metadata)

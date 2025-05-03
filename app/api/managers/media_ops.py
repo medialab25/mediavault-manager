@@ -1,4 +1,5 @@
-
+import os
+from app.api.managers.media_manager import MediaManager
 from app.api.models.media_models import MediaItem
 
 
@@ -21,3 +22,29 @@ def show_missing_items():
     missing_items = get_missing_items(source_items, target_items, compare_fn=lambda x, y: x.quality == y.quality)
     print(missing_items)
 
+def media_item_and_file_same(media_item: MediaItem, file_path: str) -> bool:
+    """Compare a MediaItem with a file path to determine if they represent the same file.
+    
+    Args:
+        media_item: The MediaItem to compare
+        file_path: The file path to compare against
+        media_manager: The MediaManager instance to use for populating extended info
+        
+    Returns:
+        bool: True if the files are the same, False otherwise
+    """
+    # Check if both files exist
+    if not os.path.exists(media_item.full_path) or not os.path.exists(file_path):
+        return False
+        
+    # Compare file names
+    if os.path.basename(media_item.full_path) != os.path.basename(file_path):
+        return False
+        
+    # Compare file sizes
+    source_size = os.path.getsize(media_item.full_path)
+    target_size = os.path.getsize(file_path)
+    if source_size != target_size:
+        return False
+        
+    return True

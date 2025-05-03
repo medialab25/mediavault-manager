@@ -5,7 +5,9 @@ from enum import Enum
 from dataclasses import dataclass
 from typing import Any, List, Dict
 
+from app.api.managers.media_filter import MediaFilter
 from app.api.managers.media_manager import MediaManager
+from app.api.managers.media_ops import media_item_and_file_same
 from app.api.managers.media_query import MediaQuery
 from app.api.models.media_models import MediaDbType, MediaItem, MediaItemGroupDict
 from app.api.models.merge_models import MergeResult
@@ -38,6 +40,7 @@ class MediaMerger:
         self.user_id = int(config["user"])
         self.group_id = int(config["group"])
         self.media_manager = MediaManager(config)
+        self.media_filter = MediaFilter(config)
 
     def merge_libraries(self, dry_run: bool = False) -> MergeResult:
         for media_type, config in self.config["source_matrix"].items():
@@ -131,7 +134,7 @@ class MediaMerger:
             #        for target_item in all_merged_items
             #    )
             #]
-
+        self.create_linked_media('/tmp/merged', dry_run=dry_run)
         if dry_run:
             return MergeResult(
                 added_media_items=added_media_items,
@@ -163,3 +166,58 @@ class MediaMerger:
             deleted_media_items=deleted_media_items
             #skipped_media_items=skipped_media_items
         )
+
+    def create_linked_media(self, target_path: str, dry_run: bool = False) -> list[str]:
+        linked_files = []
+        for media_type, config in self.config["source_matrix"].items():
+            if not config.get("merged_path"):
+                continue
+
+            if not config.get("quality_order"):
+                continue
+
+            # Get quality and prefix from config
+            merged_path = config["merged_path"]
+
+            source_media_items = self.media_manager.search_media(
+                SearchRequest(
+                    db_type=[MediaDbType.ALL]
+                ), merged_path
+            )
+
+            for item in source_media_items.items:
+                # For each items full path, create a hard link to the target path recursively and create folders as required.
+                target_file_path = os.path.join(target_path, item.get_relative_filepath())
+                linked_files.append(target_file_path)
+
+                # See if file exists and is the same as the media item
+                if os.path.exists(target_file_path):
+                    if media_item_and_file_same(item, target_file_path):
+                        continue
+
+                if dry_run:
+                    continue
+
+                if not os.path.exists(os.path.dirname(target_file_path)):
+                    os.makedirs(os.path.dirname(target_file_path), mode=0o755)
+                    os.chown(os.path.dirname(target_file_path), self.user_id, self.group_id)
+                
+                if not os.path.exists(target_file_path):
+                    os.link(item.full_path, target_file_path)
+
+        # Remove any files and empty folders in target_path that are not in the linked_files list
+        if not dry_run and os.path.exists(target_path):
+            for root, dirs, files in os.walk(target_path, topdown=False):
+                # Remove files not in linked_files
+                for file in files:
+                    full_path = os.path.join(root, file)
+                    if full_path not in linked_files:
+                        os.remove(full_path)
+                
+                # Remove empty directories
+                for dir in dirs:
+                    dir_path = os.path.join(root, dir)
+                    if not os.listdir(dir_path):
+                        os.rmdir(dir_path)
+        
+        return linked_files

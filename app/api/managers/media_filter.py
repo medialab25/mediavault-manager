@@ -1,4 +1,5 @@
 # Class to take a SearchRequest and filter the MediaItemGroup based on the request
+import os
 from app.api.models.media_models import MediaItem, MediaItemGroup
 from app.api.models.search_request import SearchRequest
 
