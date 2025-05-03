@@ -1,4 +1,5 @@
 from enum import Enum
+from pathlib import Path
 from typing import Dict, List, Optional
 from pydantic import BaseModel
 
@@ -8,6 +9,7 @@ class MediaDbType(Enum):
     CACHE = "cache"
     SHADOW = "shadow"
     UNDEFINED = "undefined"
+    ALL = "all"
 
 class ExtendedMediaInfo(BaseModel):
     size: int
@@ -42,7 +44,7 @@ class MediaItem(BaseModel):
     id: str
     db_type: MediaDbType
     full_path: str
-    relative_title_path: str
+    title_path: str
     media_type: str
     media_prefix: str
     quality: str
@@ -50,6 +52,32 @@ class MediaItem(BaseModel):
     season: Optional[int] = None
     episode: Optional[int] = None
     extended: Optional[ExtendedMediaInfo] = None
+
+    def get_relative_filepath(self) -> str:
+        """Get the subpath of the file relative to its title folder by removing title_path"""
+        # Convert both paths to Path objects
+        full_path = Path(self.full_path)
+        title_path_obj = Path(self.title_path)
+        
+        try:
+            # Get the relative path by removing the title_path
+            return str(full_path.relative_to(title_path_obj))
+        except ValueError:
+            # If paths are not related, return empty string
+            return ""
+
+    def get_relative_folderpath(self) -> str:
+        """Get the subpath of the file relative to its title folder by removing title_path"""
+        # Convert both paths to Path objects
+        full_path = Path(self.full_path)
+        title_path_obj = Path(self.title_path)
+        
+        try:
+            # Get the relative path by removing the title_path and return parent folder
+            return str(full_path.relative_to(title_path_obj).parent)
+        except ValueError:
+            # If paths are not related, return empty string
+            return ""
 
 class MediaItemGroup(BaseModel):
     items: List[MediaItem]

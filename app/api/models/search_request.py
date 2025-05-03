@@ -24,3 +24,10 @@ class SearchRequest(BaseModel):
     db_type: Optional[List[MediaDbType]] = [MediaDbType.MEDIA]  # List of database types to search in
     cache_export_filter: Optional[SearchCacheExportFilter] = SearchCacheExportFilter.ALL # Whether to include cache export in the search
 
+class SearchRequestAll(SearchRequest):
+    """
+    Model for handling search API requests.
+    """
+    db_type: Optional[List[MediaDbType]] = [MediaDbType.ALL]
+    
+    

@@ -8,7 +8,8 @@ from typing import Any, List, Dict
 from app.api.managers.media_manager import MediaManager
 from app.api.managers.media_query import MediaQuery
 from app.api.models.media_models import MediaDbType, MediaItem, MediaItemGroupDict
-from app.api.models.search_request import SearchRequest
+from app.api.models.merge_models import MergeResult
+from app.api.models.search_request import SearchRequest, SearchRequestAll
 # Merge library type
 # Inputs:
 # - media_type: string. e.g. 'tv', 'movies'
@@ -34,17 +35,11 @@ class MergeLibrariesResult:
 class MediaMerger:
     def __init__(self, config: dict[str, Any]):
         self.config = config
-        self.user_id = config["user"]
-        self.group_id = config["group"]
+        self.user_id = int(config["user"])
+        self.group_id = int(config["group"])
         self.media_manager = MediaManager(config)
 
-    def merge_libraries(self, dry_run: bool = False) -> dict[str, Any]:
-
-        add_media_items = []
-        update_media_items = []
-        delete_media_items = []
-        delete_folders = []
-
+    def merge_libraries(self, dry_run: bool = False) -> MergeResult:
         for media_type, config in self.config["source_matrix"].items():
             if not config.get("merged_path"):
                 continue
@@ -58,10 +53,13 @@ class MediaMerger:
             merged_path = config["merged_path"]
 
             # Get all from this quality and prefix
-            allowed_folders = []
-            merged_items_dict: Dict[str, MediaItem] = {}
+            merged_items_dict: Dict[str, List[MediaItem]] = {}
+            compare_items_dict: Dict[str, List[MediaItem]] = {}
 
-            for quality in reversed(quality_order):
+            merged_quality_index: Dict[str, int] = {}
+            for quality in quality_order:
+                # get index for this quality
+                quality_index = quality_order.index(quality)
                 media_quality_items = self.media_manager.search_media(
                     SearchRequest(
                         quality=quality, 
@@ -70,157 +68,98 @@ class MediaMerger:
                     )
                 )  
 
-                # Get merged items
-                current_quality_merged_items = self.media_manager.search_media(
-                    SearchRequest(
-                        quality=quality,
-                        media_prefix=prefix                        
-                    ), merged_path
-                )
-
-                allowed_folders.append(f"{prefix}-{quality}")
-
                 for item in media_quality_items.items:
                     # get title/relative_path
-                    rel_path = Path(item.title) / item.relative_title_path;
-                    merged_items_dict[rel_path] = item
+                    key_path = f"{item.media_prefix}-{item.get_relative_folderpath()}"
+                    # create list if key_path not exists
+                    if key_path not in merged_quality_index:
+                        merged_items_dict[key_path] = [item]
+                        merged_quality_index[key_path] = quality_index
+                    else:
+                        if quality_index == merged_quality_index[key_path]:
+                            merged_items_dict[key_path].append(item)
 
+            compare_items = self.media_manager.search_media(
+                SearchRequestAll(), merged_path
+            )
 
-            # Get list of folders to delete
-            if os.path.exists(merged_path):
-                for folder in os.listdir(merged_path):
-                    if folder not in allowed_folders:
-                        delete_folders.append(os.path.join(merged_path, folder))   
+            for item in compare_items.items:
+                key_path = f"{item.media_prefix}-{item.get_relative_folderpath()}"
+                if key_path not in compare_items_dict:
+                    compare_items_dict[key_path] = []
+                compare_items_dict[key_path].append(item)
 
-        return {}
+            # Flatten the lists of items
+            all_merged_items = [item for items in merged_items_dict.values() for item in items]
+            all_compare_items = [item for items in compare_items_dict.values() for item in items]
 
-    def merge_libraries1(self, media_type: str, source_paths: list[str], quality_list: list[str], merged_path: str, dry_run: bool = False) -> MergeLibrariesResult:
-        success = True
-        self.merged_folders = {}  # Reset merged folders
-        success = True
-        self.merged_folders = {}  # Reset merged folders
-        self.added_folders = {}  # Reset added folders
-        self.updated_folders = {}  # Reset updated folders
-        self.deleted_folders = {}  # Reset deleted folders
-        self.skipped_folders = {}  # Reset skipped folders
+            # added_media_items = the items in merged_items_dict that are not in compare_items_dict     
+            added_media_items = [
+                item 
+                for item in all_merged_items
+                if not any(
+                    item.get_relative_filepath() == target_item.get_relative_filepath() 
+                    for target_item in all_compare_items
+                )
+            ]
 
-        for source_path in source_paths:
-            for quality in quality_list:
-                media_folder = f"{media_type}-{quality}"
-                media_path = f"{source_path}/{media_folder}"
+            # updated_media_items = the items in merged_items_dict that are in compare_items_dict, that are not the same quality
+            updated_media_items = [
+                item for item in all_merged_items
+                if any(
+                    item.get_relative_filepath() == target_item.get_relative_filepath() and item.quality != target_item.quality 
+                    for target_item in all_compare_items
+                )
+            ]
 
-                if os.path.exists(media_path):
-                    folders = os.listdir(media_path)
+            # deleted_media_items = the items in compare_items_dict that are not in merged_items_dict
+            deleted_media_items = [
+                item 
+                for item in all_compare_items
+                if not any(
+                    item.get_relative_filepath() == target_item.get_relative_filepath() 
+                    for target_item in all_merged_items
+                )
+            ]
 
-                    for folder in folders:
-                        self.merge_folder(media_path, folder, merged_path, quality, quality_list, dry_run)
+            # skipped_media_items = the items in compare_items_dict that are in merged_items_dict but are the same quality as the target item
+            #skipped_media_items = [
+            #    item 
+            #    for item in all_compare_items
+            #    if any(
+            #        item.get_relative_filepath() == target_item.get_relative_filepath() and item.quality == target_item.quality 
+            #        for target_item in all_merged_items
+            #    )
+            #]
 
-        # Cleanup folders in merged_path that are not in merged_folders
-        if os.path.exists(merged_path):
-            for folder in os.listdir(merged_path):
-                if folder not in self.merged_folders:
-                    print(f"Removing folder {folder} from {merged_path} because it is not in merged_folders")
-                    quality = self.get_folder_quality_flags(os.path.join(merged_path, folder), quality_list)
-                    if not dry_run:
-                        shutil.rmtree(os.path.join(merged_path, folder))
-                    self.deleted_folders[folder] = quality if quality else "unknown"
-
-        return MergeLibrariesResult(
-            added_folders=self.added_folders,
-            updated_folders=self.updated_folders,
-            deleted_folders=self.deleted_folders,
-            skipped_folders=self.skipped_folders,
-            status=FolderOperationStatus.SUCCESS if success else FolderOperationStatus.FAILED
-        )
-
-    def get_folder_flags(self, media_path: str) -> list[str]:
-        folder_flags = []
-        if os.path.exists(media_path):
-            for file in os.listdir(media_path):
-                if file.startswith('.'):
-                    folder_flags.append(file[1:])
-        return folder_flags
-
-    def get_folder_quality_flags(self, folder: str, quality_list: list[str]) -> str:
-        folder_flags = self.get_folder_flags(folder)
-        for flag in folder_flags:
-            if flag in quality_list:
-                return flag
-        return None
-
-    def merge_folder(self, media_path: str, folder: str, merged_path: str, quality: str, quality_list: list[str], dry_run: bool = False) -> bool:
-        success = True
-
-        source_path = f"{media_path}/{folder}"
-        target_path = f"{merged_path}/{folder}"
-        if not os.path.exists(target_path):
-            try:
-                if not dry_run:
-                    os.makedirs(target_path, mode=0o755)
-                    os.chown(target_path, self.user_id, self.group_id)
-            except PermissionError as e:
-                return False
-
-        if folder in self.merged_folders:
-            existing_quality = self.merged_folders[folder]
-            if quality_list.index(existing_quality) <= quality_list.index(quality):
-                print(f"Folder {folder} already merged with {existing_quality} (better or equal to {quality}), skipping")
-                self.skipped_folders[folder] = existing_quality
-                return True
-            else:
-                print(f"Folder {folder} already merged with {existing_quality} (worse than {quality}), updating")
-                self.updated_folders[folder] = quality
-        else:
-            current_quality = self.get_folder_quality_flags(target_path, quality_list)
-            print(f"Current quality of {folder}: {current_quality}")
-            if current_quality is not None:
-                if quality_list.index(current_quality) == quality_list.index(quality):
-                    print(f"Folder {folder} already merged with {current_quality} (equal to {quality}), skipping")
-                    self.merged_folders[folder] = quality
-                    self.skipped_folders[folder] = current_quality
-                    return True
-                else:
-                    print(f"Folder {folder} already merged with {current_quality} (worse than {quality}), updating")
-                    self.updated_folders[folder] = quality
-            else:
-                print(f"Folder {folder} is not merged, adding")
-                self.added_folders[folder] = quality
-
-        self.merged_folders[folder] = quality
-        
         if dry_run:
-            return True
+            return MergeResult(
+                added_media_items=added_media_items,
+                updated_media_items=updated_media_items,
+                deleted_media_items=deleted_media_items
+                #skipped_media_items=skipped_media_items
+            )
 
-        if os.path.exists(target_path):
-            for root, dirs, files in os.walk(target_path, topdown=False):
-                for name in files:
-                    os.remove(os.path.join(root, name))
-                    print(f"Removing all files in {target_path}")
-                for name in dirs:
-                    os.rmdir(os.path.join(root, name))
+        # Delete items  
+        for item in deleted_media_items:
+            os.remove(item.full_path)
 
-        flag_file = f"{target_path}/.{quality}"
-        with open(flag_file, 'w') as f:
-            f.write(f"{quality}")
+        # Update folders
+        for updated_item in updated_media_items + added_media_items:
+            # Create target path if not exists
+            target_file_path = os.path.join(merged_path, f"{updated_item.media_prefix}-{updated_item.quality}", updated_item.get_relative_filepath())
+            if not os.path.exists(os.path.dirname(target_file_path)):
+                os.makedirs(os.path.dirname(target_file_path), mode=0o755)
+                os.chown(os.path.dirname(target_file_path), self.user_id, self.group_id)
 
-        for root, dirs, files in os.walk(source_path):
-            for file in files:
-                rel_path = os.path.relpath(root, source_path)
-                src = os.path.join(root, file)
-                dst_dir = os.path.join(target_path, rel_path)
-                dst = os.path.join(dst_dir, file)
+            # Hard link the item to the merged path, removing the old item if it exists
+            if os.path.exists(target_file_path):
+                os.remove(target_file_path)
+            os.link(updated_item.full_path, target_file_path)
 
-                os.makedirs(dst_dir, mode=0o755, exist_ok=True)
-                os.chown(dst_dir, self.user_id, self.group_id)
-
-                try:
-                    print(f"Linking {src} to {dst}")
-                    os.link(src, dst)
-                except FileExistsError:
-                    print(f"Skipping existing file: {dst}")
-                    pass
-                except OSError as e:
-                    print(f"Failed to link {src} to {dst}: {e}")
-                    success = False
-
-        return success
+        return MergeResult(
+            added_media_items=added_media_items,
+            updated_media_items=updated_media_items,
+            deleted_media_items=deleted_media_items
+            #skipped_media_items=skipped_media_items
+        )

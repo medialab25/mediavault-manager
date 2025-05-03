@@ -3,6 +3,7 @@ import logging
 
 from app.api.managers.media_server import MediaServer
 from app.api.models.media_models import MediaFileItem, MediaItemFolder, MediaGroupFolder
+from app.api.models.merge_models import MergeResult
 from app.core.status import Status
 from app.api.managers.media_merger import MediaMerger
 from app.api.validators.validators import validate_media_merge_settings
@@ -32,11 +33,12 @@ async def refresh_media():
         raise APIResponse.error(str(e))
     
 @router.post("/merge", status_code=200)
-async def merge_media(refresh: bool = False, dry_run: bool = False) -> dict:
+async def merge_media(refresh: bool = False, dry_run: bool = False) -> APIResponse:
     """Merge the media library by calling the Media Merge API.
     
     Args:
         refresh (bool): If True, refresh the media library after merging. Defaults to False.
+        dry_run (bool): If True, only show what would be done without making changes. Defaults to False.
     """
     try:
         logger.debug("Starting media merge")
@@ -50,26 +52,9 @@ async def merge_media(refresh: bool = False, dry_run: bool = False) -> dict:
             logger.error(f"Validation error during media merge: {str(e.detail)}")
             raise APIResponse.error(str(e.detail))
         
-
         # Create MediaMerger instance
         media_merger = MediaMerger(settings.MEDIA_LIBRARY)
         results = media_merger.merge_libraries(dry_run=dry_run)
-
-        
-        # # Call merge_libraries for each media type
-        # results = {}
-        # for media_type, config in settings.MEDIA_LIBRARY["source_matrix"].items():
-        #     if config.get("merged_path"):
-        #         result = media_merger.merge_libraries(
-        #             media_type=config.get("prefix", media_type),
-        #             source_paths=[settings.MEDIA_LIBRARY["default_source_path"]],
-        #             quality_list=config["quality_order"],
-        #             merged_path=config["merged_path"],
-        #             dry_run=dry_run
-        #         )
-        #         results[media_type] = result
-        
-        # logger.debug(f"Media merge completed: {results}")
         
         # Refresh media if requested
         refresh_result = None
@@ -77,14 +62,13 @@ async def merge_media(refresh: bool = False, dry_run: bool = False) -> dict:
             refresh_result = await media_server.refresh_media()
             logger.debug(f"Media refresh completed: {refresh_result}")
 
-        response = APIResponse.success(
+        return APIResponse.success(
             data={
-                "merge": results,
+                "merge": results.model_dump(),
                 "refresh": refresh_result if refresh else None
             },
             message="Media merge completed successfully"
         )
-        return response.model_dump()
     except Exception as e:
         logger.error(f"Error during media merge: {str(e)}", exc_info=True)
         raise APIResponse.error(str(e)) 

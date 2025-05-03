@@ -236,10 +236,7 @@ class MediaManager:
             ),
             db_type=db_type,
             full_path=file.as_posix(),
-            relative_title_path=self.get_relative_path_to_title(
-                title_path=media_group.path,
-                file_path=file.as_posix()
-            ), 
+            title_path=media_group.path,
             media_type=media_group.media_type,
             media_prefix=media_group.media_prefix,
             quality=media_group.quality,
