@@ -3,6 +3,7 @@ from app.api.managers.file_transaction_manager import FileTransactionManager
 from app.api.models.file_transaction_models import FileTransactionList, FileTransactionSettings, ExistingFileAction, FileApplyTransactionSettings
 from app.api.models.media_models import MediaItemGroupDict, MediaItemGroup
 from app.api.managers.cache_manager import CacheManager
+from app.api.process.cache_processor import CacheProcessor
 from app.api.process.media_merger import MediaMerger
 import logging
 import os
@@ -15,7 +16,8 @@ class SyncManager:
         self.cache_manager = CacheManager(config)
         self.media_merger = MediaMerger(config)
         self.file_transaction_manager = FileTransactionManager(config)
-        
+        self.cache_processor = CacheProcessor(config)
+
     def sync(self, dry_run: bool = False) -> MediaItemGroupDict:
         """Sync the cache with the media library
         
@@ -53,6 +55,10 @@ class SyncManager:
 
             # Apply file transactions
             file_transaction_summary = self.file_transaction_manager.apply_file_transactions(file_transactions, settings=None, dry_run=dry_run)
+
+            # Process cache
+            self.cache_processor.process_cache(merged_items_group_dict)
+
 
             # Flatten the merged items group dict
             #flattened_items_group = self.flatten_merged_items_group_dict(merged_items_group_dict)
