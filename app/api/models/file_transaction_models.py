@@ -29,6 +29,9 @@ class FileTransactionSettings(BaseModel):
     def get_default_settings(self) -> "FileTransactionSettings":
         return FileTransactionSettings(existing_file_action=ExistingFileAction.OVERWRITE)
 
+class FileApplyTransactionSettings(BaseModel):
+    write_file_metadata: bool = False
+
 class FileTransaction(BaseModel):
     type: FileOperationType
     settings: FileTransactionSettings = None

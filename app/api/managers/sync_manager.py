@@ -1,6 +1,6 @@
 from typing import Any
 from app.api.managers.file_transaction_manager import FileTransactionManager
-from app.api.models.file_transaction_models import FileTransactionList, FileTransactionSettings, ExistingFileAction
+from app.api.models.file_transaction_models import FileTransactionList, FileTransactionSettings, ExistingFileAction, FileApplyTransactionSettings
 from app.api.models.media_models import MediaItemGroupDict, MediaItemGroup
 from app.api.managers.cache_manager import CacheManager
 from app.api.process.media_merger import MediaMerger
@@ -52,7 +52,7 @@ class SyncManager:
                     file_transactions.copy(item.full_path, destination, settings=settings, metadata=metadata)
 
             # Apply file transactions
-            file_transaction_summary = self.file_transaction_manager.apply_file_transactions(file_transactions, dry_run=dry_run)
+            file_transaction_summary = self.file_transaction_manager.apply_file_transactions(file_transactions, settings=None, dry_run=dry_run)
 
             # Flatten the merged items group dict
             #flattened_items_group = self.flatten_merged_items_group_dict(merged_items_group_dict)
