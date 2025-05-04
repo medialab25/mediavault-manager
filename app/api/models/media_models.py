@@ -1,6 +1,6 @@
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
 
 # enum for the db types, MEDIA, CACHE, SHADOW
@@ -81,6 +81,7 @@ class MediaItem(BaseModel):
 
 class MediaItemGroup(BaseModel):
     items: List[MediaItem]
+    metadata: Optional[Dict[str, Any]] = None
 
 class MediaItemGroupList(BaseModel):
     groups: List[MediaItemGroup]
