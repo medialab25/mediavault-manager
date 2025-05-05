@@ -23,10 +23,11 @@
                 "prefix": "tv",
                 "media_type": "tv",
                 "quality_order": ["uhd", "hd"],
-                "merged_path": "/srv/storage/media/export/tv-merged"
+                "merged_path": "/srv/storage/media/export/tv-merged",
+                "cache_merge_folder": "tv-merged"
             }
         },
         "cache_path": "/srv/disks/media-ssd/media",
         "system_data_path": "/srv/storage/media/system-data"
     }
-} 
+}  

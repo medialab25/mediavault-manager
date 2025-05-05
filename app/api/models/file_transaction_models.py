@@ -31,6 +31,7 @@ class FileTransactionSettings(BaseModel):
 
 class FileApplyTransactionSettings(BaseModel):
     write_file_metadata: bool = False
+    clear_existing_file_path: str = None
 
 class FileTransaction(BaseModel):
     type: FileOperationType

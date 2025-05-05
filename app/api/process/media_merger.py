@@ -29,6 +29,7 @@ class MediaMerger:
             MediaItemGroupDict: The merged media item group dict
         """
         merged_items_group_dict: MediaItemGroupDict = MediaItemGroupDict(groups={})
+        cache_path = self.config["cache_path"]
 
         for media_type, config in self.config["source_matrix"].items():
             if not config.get("merged_path"):
@@ -41,6 +42,7 @@ class MediaMerger:
             quality_order = config["quality_order"]
             prefix = config["prefix"]
             merged_path = config["merged_path"]
+
             # Get all from this quality and prefix
             merged_items_dict: Dict[str, List[MediaItem]] = {}
 
@@ -77,7 +79,9 @@ class MediaMerger:
                     metadata = {
                         "merged_path": merged_path,
                         "prefix": item.media_prefix,
-                        "quality": item.quality
+                        "quality": item.quality,
+                        "cache_path": cache_path,
+                        "cache_data": config.get("cache_data", False)
                     }
                     merged_items_group_dict.groups[key] = MediaItemGroup(
                         items=[item],

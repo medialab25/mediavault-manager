@@ -1,8 +1,8 @@
 from typing import Any
 from app.api.managers.file_transaction_manager import FileTransactionManager
 from app.api.models.file_transaction_models import FileTransactionList, FileTransactionSettings, ExistingFileAction, FileApplyTransactionSettings
-from app.api.models.media_models import MediaItemGroupDict, MediaItemGroup
-from app.api.managers.cache_manager import CacheManager
+from app.api.models.media_models import MediaDbType, MediaItemGroupDict, MediaItemGroup
+from app.api.models.search_request import SearchRequest
 from app.api.process.cache_processor import CacheProcessor
 from app.api.process.media_merger import MediaMerger
 import logging
@@ -13,12 +13,11 @@ logger = logging.getLogger(__name__)
 class SyncManager:
     def __init__(self, config: dict[str, Any]):
         self.config = config
-        self.cache_manager = CacheManager(config)
         self.media_merger = MediaMerger(config)
         self.file_transaction_manager = FileTransactionManager(config)
         self.cache_processor = CacheProcessor(config)
 
-    def sync(self, dry_run: bool = False) -> MediaItemGroupDict:
+    def sync(self, dry_run: bool = False) -> dict[str, Any]:
         """Sync the cache with the media library
         
         Args:
@@ -30,47 +29,56 @@ class SyncManager:
         try:
             logger.debug(f"Starting sync{' (dry run)' if dry_run else ''}")
 
+            # Process cache
+            cache_file_transaction_summary = self.cache_processor.sync_cache(dry_run=dry_run)
+
             # Get merged items group dict
             merged_items_group_dict = self.media_merger.merge_libraries()
 
-            
-
-
             # Get file transactions
+            cache_items = self.media_manager.search_media(SearchRequest(db_type=MediaDbType.CACHE))
+
             file_transactions = FileTransactionList(transactions=[])
             settings = FileTransactionSettings(existing_file_action=ExistingFileAction.OVERWRITE)
             for key, group in merged_items_group_dict.groups.items():
                 merged_path = group.metadata["merged_path"]
-                for item in group.items:
-                    # Construct destination path by joining merged_path with the relative path
-                    relative_path = item.get_relative_filepath()
-                    destination = os.path.join(merged_path, relative_path)
-                    # Create metadata dictionary with necessary information
-                    metadata = {
-                        "source_path": item.full_path,
-                        "destination_path": destination,
-                        "media_type": item.media_type,
-                        "media_prefix": item.media_prefix,
-                        "quality": item.quality,
-                        "title": item.title
-                    }
-                    file_transactions.copy(item.full_path, destination, settings=settings, metadata=metadata)
+                cache_path = group.metadata["cache_path"]
+                # Set cache_data based on whether cache_merge_folder exists
+                cache_data = "cache_merge_folder" in group.metadata
+                cache_merge_folder = group.metadata.get("cache_merge_folder")
+                
+                if cache_data:
+                    cache_base_path = os.path.join(cache_path, cache_merge_folder)
+
+                    for item in group.items:
+                        # Is this item matching to matrix_file_path in the cache items
+                        matching_item = next((cache_item for cache_item in cache_items.items if cache_item.get_matrix_file_path() == item.get_matrix_filepath()), None)
+                        if matching_item:
+                            source = matching_item.full_path
+                            destination = os.path.join(cache_base_path, item.get_relative_filepath())
+                        else:
+                            source = item.full_path 
+                            destination = os.path.join(merged_path, item.get_relative_filepath())
+                else:
+                    for item in group.items:
+                        source = item.full_path
+                        destination = os.path.join(merged_path, item.get_relative_filepath())
+
+                # Create metadata dictionary with necessary information
+                file_transactions.copy(source, destination, settings=settings)
+
+            # Remove unreferenced files
+#            file_transactions = self.file_transaction_manager.get_file_transactions_remove_unreferenced_files(merged_path, file_transactions)
 
             # Apply file transactions
             file_transaction_summary = self.file_transaction_manager.apply_file_transactions(file_transactions, settings=None, dry_run=dry_run)
 
-            # Process cache
-            self.cache_processor.process_cache(merged_items_group_dict)
 
-
-            # Flatten the merged items group dict
-            #flattened_items_group = self.flatten_merged_items_group_dict(merged_items_group_dict)
-
-            #cache_sync_result = self.cache_manager.sync_cache(dry_run=dry_run)
-
-            #return cache_sync_result
-
-            return merged_items_group_dict
+            return {
+                "merged_items_group_dict": merged_items_group_dict,
+                "file_transaction_summary": file_transaction_summary,
+                "cache_file_transaction_summary": cache_file_transaction_summary
+            }
 
         except Exception as e:
             logger.error(f"Error in sync: {str(e)}", exc_info=True)
