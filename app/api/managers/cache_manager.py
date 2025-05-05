@@ -5,20 +5,22 @@ import shutil
 from typing import List, Dict, Optional, Any
 from pathlib import Path
 
-from app.api.adapters.os_adapter import os_adapter_hard_link_file
 from app.api.managers.media_manager import MediaManager
 from app.api.managers.media_query import MediaQuery
 from app.api.managers.update_data_manager import UpdateDataManager
-from app.api.models.media_models import MediaDbType, MediaItemGroup, MediaItemGroupDict
+from app.api.models.media_models import MediaDbType, MediaItemGroup, MediaItemGroupDict, MediaItem
 from app.api.models.search_request import SearchRequest
 
 logger = logging.getLogger(__name__)
+
+# Cache for persisting calls
+_add_cache_items: List[MediaItem] = []
+_remove_cache_items: List[MediaItem] = []
 
 class CacheManager:
     def __init__(self, config: dict[str, Any]):
         self.config = config
         self.cache_path = Path(config.get("cache_path", ""))
-        self.cache_shadow_path = Path(config.get("cache_shadow_path", ""))
         self.media_manager = MediaManager(config)
         self.update_data_manager = UpdateDataManager(config)
 
@@ -26,50 +28,23 @@ class CacheManager:
         """List all cache contents"""
         try:
             logger.debug("Listing cache contents")
+            global _add_cache_items
+            global _remove_cache_items
+            
             # Use the media manager to search cache
-            result = self.media_manager.search_media(
+            cache_result = self.media_manager.search_media(
                 request=SearchRequest(
                     query="",
-                    db_type=[MediaDbType.CACHE, MediaDbType.SHADOW, MediaDbType.MEDIA]
+                    db_type=[MediaDbType.CACHE]
                 )
             )
-
-            # Use the media query to get the items
-            media_query = MediaQuery(result)
-            shadow_result = media_query.get_items(SearchRequest(
-                db_type=[MediaDbType.SHADOW]
-            ))
-            cache_result = media_query.get_items(SearchRequest(
-                db_type=[MediaDbType.CACHE]
-            ))
-
-            # Read update data
-            update_data = self.update_data_manager.read_update_data()
-            add_cache_updates = update_data.get("add_cache_updates", [])
-            remove_cache_updates = update_data.get("remove_cache_updates", [])
-
-            add_cache_result = MediaItemGroup(items=[])
-            remove_cache_result = MediaItemGroup(items=[])
-
-            # For each id in add_cache_updates, add the item to the cache
-            for id in add_cache_updates:
-                item = next((item for item in result.items if item.id == id), None)
-                if item:
-                    add_cache_result.items.append(item)
-
-            # For each id in remove_cache_updates, remove the item from the cache   
-            for id in remove_cache_updates:
-                item = next((item for item in cache_result.items if item.id == id), None)
-                if item:
-                    remove_cache_result.items.append(item)
 
             # Combine the results
             return MediaItemGroupDict(
                 groups={
-                    "shadow": shadow_result,
                     "cache": cache_result,
-                    "add_cache": add_cache_result,
-                    "remove_cache": remove_cache_result
+                    "add_cache": MediaItemGroup(items=_add_cache_items),
+                    "remove_cache": MediaItemGroup(items=_remove_cache_items)
                 }
             )
         except Exception as e:
@@ -79,6 +54,8 @@ class CacheManager:
     def add_to_cache(self, data: dict, dry_run: bool = False) -> Dict:
         """Add items to cache based on search criteria"""
         try:
+            global _add_cache_items
+            
             # Create a search request from the data
             request = SearchRequest(
                 query=data.get("query", ""),
@@ -97,9 +74,10 @@ class CacheManager:
             if dry_run:
                 return result
 
-            # Add the items to the update data manager
-            self.update_data_manager.add_cache_update([item.id for item in result.items])
-
+            # Get existing matrix filepaths to avoid duplicates
+            existing_paths = {item.get_matrix_filepath() for item in _add_cache_items}
+            # Only add items whose matrix filepath is not already in the list
+            _add_cache_items.extend([item for item in result.items if item.get_matrix_filepath() not in existing_paths])
             return result
         except Exception as e:
             logger.error(f"Error adding to cache: {str(e)}", exc_info=True)
@@ -108,6 +86,9 @@ class CacheManager:
     def remove_from_cache(self, data: dict, dry_run: bool = False) -> Dict:
         """Remove items from cache based on search criteria"""
         try:
+            global _add_cache_items
+            global _remove_cache_items
+            
             # Create a search request from the data
             request = SearchRequest(
                 query=data.get("query", ""),
@@ -116,22 +97,28 @@ class CacheManager:
                 id=data.get("id"),
                 season=data.get("season"),
                 episode=data.get("episode"),
-                db_type=[MediaDbType.CACHE]
+                db_type=[MediaDbType.CACHE, MediaDbType.MEDIA]
             )
 
             # Use media manager to search for items
             result = self.media_manager.search_media(request)
+            query = MediaQuery(result)
+            cache_result = query.get_items(SearchRequest(db_type=[MediaDbType.CACHE]))
+            media_result = query.get_items(SearchRequest(db_type=[MediaDbType.MEDIA]))
 
             # If this is a dry run, just return the search results
             if dry_run:
-                return result
-            
-            # Only remove if items are found
-            if result.items:
-                # Move the items from the cache pending to the media
-                self.update_data_manager.remove_cache_update([item.id for item in result.items])
+                return cache_result
 
-            return result
+            # Add to the remove list if the item already exists in the result using get_matrix_filepath as key
+            existing_paths = {item.get_matrix_filepath() for item in cache_result.items}
+            _remove_cache_items.extend([item for item in cache_result.items if item.get_matrix_filepath() in existing_paths])
+
+            # Remove any from _add_cache_items that have same matrix filepath as result
+            media_paths = {item.get_matrix_filepath() for item in media_result.items}
+            _add_cache_items = [item for item in _add_cache_items if item.get_matrix_filepath() not in media_paths]
+
+            return cache_result
         except Exception as e:
             logger.error(f"Error removing from cache: {str(e)}", exc_info=True)
             raise e

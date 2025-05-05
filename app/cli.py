@@ -82,7 +82,6 @@ def refresh():
 @media_app.command()
 def merge(
     refresh: bool = typer.Option(False, "--refresh", "-r", help="Refresh the media library after merging"),
-    details: bool = typer.Option(False, "--details", "-d", help="Show detailed changes for each media type"),
     dry_run: bool = typer.Option(False, "--dry-run", "-n", help="Show what would be merged without making changes"),
     json: bool = typer.Option(False, "--json", "-j", help="Show the result in JSON format")
 ):

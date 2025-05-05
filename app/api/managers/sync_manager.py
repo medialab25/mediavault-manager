@@ -33,6 +33,9 @@ class SyncManager:
             # Get merged items group dict
             merged_items_group_dict = self.media_merger.merge_libraries()
 
+            
+
+
             # Get file transactions
             file_transactions = FileTransactionList(transactions=[])
             settings = FileTransactionSettings(existing_file_action=ExistingFileAction.OVERWRITE)

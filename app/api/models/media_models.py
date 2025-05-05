@@ -53,6 +53,26 @@ class MediaItem(BaseModel):
     episode: Optional[int] = None
     extended: Optional[ExtendedMediaInfo] = None
 
+    # Matrix file path is title_path/{media_prefix}-{quality}/{get_relative_folderpath()}/{get_relative_filepath()}
+    def get_matrix_folderpath(self) -> str:
+        """Get the subpath of the file relative to its title folder by removing title_path"""
+        # Convert both paths to Path objects
+        return self.get_matrix_filepath().parent
+        
+    def get_matrix_filepath(self) -> str:
+        """Get the subpath of the file relative to its title folder by removing title_path"""
+        # Convert both paths to Path objects
+        full_path = Path(self.full_path)
+        title_path_obj = Path(self.title_path)
+        
+        try:
+            # Get the relative path by removing the title_path
+            return str(full_path.relative_to(title_path_obj))
+        except ValueError:
+            # If paths are not related, return empty string
+            return ""
+
+
     def get_relative_filepath(self) -> str:
         """Get the subpath of the file relative to its title folder by removing title_path"""
         # Convert both paths to Path objects
