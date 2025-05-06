@@ -50,16 +50,22 @@ class SyncManager:
             expected_merge_groups = self.media_merger.merge_libraries(current_media, expected_cache)
 
             expected_cache_file_transactions = self.get_cache_file_transactions(expected_cache, default_source_path, cache_path)
+            export_path_list = []
             for expected_merge_group in expected_merge_groups:
                 # Implement cache changes
                 # Get file transactions
                 export_path = Path(media_export_path) / expected_merge_group.metadata["merge_name"]
+                export_path_list.append(export_path)
                 expected_merge_file_transactions = self.get_merge_file_transactions(expected_merge_group, default_source_path, export_path)
 
                 # Get files to remove
-                files_to_remove = self.get_files_to_remove(expected_merge_group, [export_path])
+            # Flatten all expected_merge_groups into a single list
+            expected_merge_groups_list = []
+            for merge_group in expected_merge_groups:
+                expected_merge_groups_list.extend(merge_group.items)
 
-            cache_files_to_remove = self.get_files_to_remove(expected_cache, [cache_path])
+            files_to_remove = self.get_files_to_remove(export_path_list, expected_merge_file_transactions)
+            cache_files_to_remove = self.get_files_to_remove([cache_path], expected_cache_file_transactions)
 
             # Combine all transactions into a single list
             merge_file_transactions = FileTransactionList(transactions=[])
@@ -118,7 +124,7 @@ class SyncManager:
             ))
         return file_transactions
 
-    def get_files_to_remove(self, expected_group: MediaItemGroup, base_paths: list[str]) -> FileTransactionList:
+    def get_files_to_remove2(self, expected_group: MediaItemGroup, base_paths: list[str], media_path: str, cache_path: str, is_merged: bool) -> FileTransactionList:
         file_transactions = FileTransactionList(transactions=[])
 
         # For each file in base_path and all sub folders, check if it exists in expected_group
@@ -126,8 +132,7 @@ class SyncManager:
             for root, dirs, files in os.walk(base_path):
                 for file in files:
                     file_path = os.path.join(root, file)
-                    relative_file_path = os.path.relpath(file_path, base_path)
-                    if not expected_group.title_file_path_exists(relative_file_path):
+                    if not expected_group.does_item_path_exist(media_path, cache_path, is_merged, file_path):
                         file_transactions.transactions.append(FileTransaction(
                             type=FileOperationType.DELETE,
                             source=str(file_path),
@@ -136,6 +141,29 @@ class SyncManager:
                         ))
         return file_transactions
 
+
+    def get_files_to_remove(self, base_paths: list[str], source_file_transactions: FileTransactionList) -> FileTransactionList:
+        file_transactions = FileTransactionList(transactions=[])
+
+        # For each file in base_path and all sub folders, check if it exists in expected_group
+        for base_path in base_paths:
+            for root, dirs, files in os.walk(base_path):
+                for file in files:
+                    file_path = os.path.join(root, file)
+
+                    # Check if the file exists in the source_file_transactions for COPY, LINK, or SYMLINK
+                    for transaction in source_file_transactions.transactions:
+                        if transaction.type in [FileOperationType.COPY, FileOperationType.LINK] and transaction.destination == file_path:
+                            break
+                    else:
+                        file_transactions.transactions.append(FileTransaction(
+                            type=FileOperationType.DELETE,
+                            source=str(file_path),
+                            destination="",
+                            metadata={}
+                        ))
+
+        return file_transactions
 
 
         

@@ -45,7 +45,7 @@ class FileTransactionManager:
             return True
             
         if settings.existing_file_action == ExistingFileAction.SKIP_IF_SAME_SIZE:
-            return os.path.getsize(source_path) == os.path.getsize(dest_path)
+            return os.path.exists(source_path) and os.path.exists(dest_path) and os.path.getsize(source_path) == os.path.getsize(dest_path)
             
         return False
 
@@ -58,6 +58,28 @@ class FileTransactionManager:
         target_dir = os.path.dirname(file_path)
         if target_dir and not os.path.exists(target_dir):
             os.makedirs(target_dir)
+
+    def _is_dir_empty(self, dir_path: str) -> bool:
+        """Check if a directory is empty
+        
+        Args:
+            dir_path (str): Path to the directory to check
+            
+        Returns:
+            bool: True if the directory is empty, False otherwise
+        """
+        return len(os.listdir(dir_path)) == 0
+
+    def _remove_empty_parent_dirs(self, file_path: str) -> None:
+        """Remove empty parent directories recursively
+        
+        Args:
+            file_path (str): Path to the file whose parent directories should be checked
+        """
+        parent_dir = os.path.dirname(file_path)
+        while parent_dir and os.path.exists(parent_dir) and self._is_dir_empty(parent_dir):
+            os.rmdir(parent_dir)
+            parent_dir = os.path.dirname(parent_dir)
 
     def apply_file_transactions(self, file_transactions: FileTransactionList, settings: FileApplyTransactionSettings = None, dry_run: bool = False) -> FileTransactionSummary:
         """Apply the file transactions to the file system
@@ -128,9 +150,14 @@ class FileTransactionManager:
                             meta_path = f"{transaction.source}.meta"
                             if os.path.exists(meta_path):
                                 os.remove(meta_path)
+                            # Remove empty parent directories
+                            self._remove_empty_parent_dirs(transaction.source)
                         summary.deleted_transactions.append(transaction)
                 elif transaction.type == FileOperationType.LINK:
                     if os.path.exists(transaction.destination):
+                        if self._should_skip_file(transaction.source, transaction.destination, transaction_settings):
+                            summary.skipped_transactions.append(transaction)
+                            continue
                         if not dry_run:
                             os.remove(transaction.destination)
                         summary.updated_transactions.append(transaction)

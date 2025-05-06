@@ -68,6 +68,18 @@ class MediaItem(BaseModel):
         result.db_type = db_type
         return result
     
+    def get_path(self, media_path: str, cache_path: str, is_merged: bool=False) -> str:
+        if self.db_type == MediaDbType.MEDIA:
+            if is_merged:
+                return self.get_full_title_filepath(media_path)
+            else:
+                return self.get_full_filepath(media_path)
+        elif self.db_type == MediaDbType.CACHE:
+            if is_merged:
+                return self.get_full_title_filepath(cache_path)
+            else:
+                return self.get_full_filepath(cache_path)
+            
     def equals(self, other: "MediaItem") -> bool:
         return self.get_relative_matrix_filepath() == other.get_relative_matrix_filepath()
 
@@ -95,6 +107,10 @@ class MediaItemGroup(BaseModel):
    
     def title_file_path_exists(self, title_file_path: str) -> bool:
         return any(item.relative_title_filepath == title_file_path for item in self.items)
+
+    def does_item_path_exist(self, media_path: str, cache_path: str, is_merged: bool, item_path: str) -> bool:
+        lst = [item.get_path(media_path, cache_path, is_merged) for item in self.items]
+        return item_path in lst
 
 class MediaItemGroupList(BaseModel):
     groups: List[MediaItemGroup]

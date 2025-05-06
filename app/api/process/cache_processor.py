@@ -20,6 +20,7 @@ class CacheProcessor:
             MediaItemGroup: The expected cache structure
 
         """
+        global _remove_cache_items, _add_cache_items
         expected_cache = MediaItemGroup(items=[])
 
         # Get list of all matrix_filepath in current cache
