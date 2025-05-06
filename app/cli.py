@@ -189,9 +189,10 @@ def add(
     query: Optional[str] = typer.Argument(None, help="Search query string"),
     media_type: Optional[str] = typer.Option(None, "--media-type", "-m", help="Media type (tv,movie)"),
     quality: Optional[str] = typer.Option(None, "--quality", "-q", help="Quality (hd,uhd,4k)"),
-    id: Optional[str] = typer.Option(None, "--id", "-i", help="Media ID to search for"),
     season: Optional[int] = typer.Option(None, "--season", "-s", help="Season number"),
     episode: Optional[int] = typer.Option(None, "--episode", "-e", help="Episode number"),
+    matrix_filepath: Optional[str] = typer.Option(None, "--matrix-filepath", "-f", help="Matrix filepath"),
+    relative_filepath: Optional[str] = typer.Option(None, "--relative-filepath", "-r", help="Relative filepath"),
     dry_run: bool = typer.Option(False, "--dry-run", "-n", help="Show what would be added without making changes"),
 ):
     """Add an item to the cache"""
@@ -205,9 +206,10 @@ def add(
             "query": query, 
             "media_type": media_type, 
             "quality": quality, 
-            "id": id, 
             "season": season, 
             "episode": episode,
+            "matrix_filepath": matrix_filepath,
+            "relative_filepath": relative_filepath,
             "dry_run": dry_run
         }))
         
@@ -270,6 +272,17 @@ def remove(
             console.print_json(data=result['data'])
         else:
             console.print("[yellow]No results found[/yellow]")
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {str(e)}")
+        raise typer.Exit(1)
+
+@cache_app.command()
+def clear_pre_cache():
+    """Clear the pre cache"""
+    try:
+        console.print("[yellow]Clearing pre cache...[/yellow]")
+        result = asyncio.run(make_request("POST", "api/cache/pre-cache/clear"))
+        console.print(f"[green]Success:[/green] {result['message']}")
     except Exception as e:
         console.print(f"[red]Error:[/red] {str(e)}")
         raise typer.Exit(1)

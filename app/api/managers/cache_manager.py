@@ -61,9 +61,10 @@ class CacheManager:
                 query=data.get("query", ""),
                 media_type=data.get("media_type"),
                 quality=data.get("quality"),
-                id=data.get("id"),
                 season=data.get("season"),
                 episode=data.get("episode"),
+                matrix_filepath=data.get("matrix_filepath"),
+                relative_filepath=data.get("relative_filepath"),
                 db_type=[MediaDbType.MEDIA]
             )
 
@@ -75,9 +76,9 @@ class CacheManager:
                 return result
 
             # Get existing matrix filepaths to avoid duplicates
-            existing_paths = {item.get_matrix_filepath() for item in _add_cache_items}
+            existing_paths = {item.get_relative_matrix_filepath() for item in _add_cache_items}
             # Only add items whose matrix filepath is not already in the list
-            _add_cache_items.extend([item for item in result.items if item.get_matrix_filepath() not in existing_paths])
+            _add_cache_items.extend([item for item in result.items if item.get_relative_matrix_filepath() not in existing_paths])
             return result
         except Exception as e:
             logger.error(f"Error adding to cache: {str(e)}", exc_info=True)
@@ -94,7 +95,8 @@ class CacheManager:
                 query=data.get("query", ""),
                 media_type=data.get("media_type"),
                 quality=data.get("quality"),
-                id=data.get("id"),
+                matrix_filepath=data.get("matrix_filepath"),
+                relative_filepath=data.get("relative_filepath"),
                 season=data.get("season"),
                 episode=data.get("episode"),
                 db_type=[MediaDbType.CACHE, MediaDbType.MEDIA]
@@ -111,14 +113,22 @@ class CacheManager:
                 return cache_result
 
             # Add to the remove list if the item already exists in the result using get_matrix_filepath as key
-            existing_paths = {item.get_matrix_filepath() for item in cache_result.items}
-            _remove_cache_items.extend([item for item in cache_result.items if item.get_matrix_filepath() in existing_paths])
+            existing_paths = {item.get_relative_matrix_filepath() for item in cache_result.items}
+            _remove_cache_items.extend([item for item in cache_result.items if item.get_relative_matrix_filepath() in existing_paths])
 
             # Remove any from _add_cache_items that have same matrix filepath as result
-            media_paths = {item.get_matrix_filepath() for item in media_result.items}
-            _add_cache_items = [item for item in _add_cache_items if item.get_matrix_filepath() not in media_paths]
+            media_paths = {item.get_relative_matrix_filepath() for item in media_result.items}
+            _add_cache_items = [item for item in _add_cache_items if item.get_relative_matrix_filepath() not in media_paths]
 
             return cache_result
         except Exception as e:
             logger.error(f"Error removing from cache: {str(e)}", exc_info=True)
             raise e
+
+    def clear_pre_cache(self):
+        """Clear the pre cache"""
+        global _add_cache_items
+        global _remove_cache_items
+        _add_cache_items = []
+        _remove_cache_items = []
+        
