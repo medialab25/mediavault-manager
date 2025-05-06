@@ -49,6 +49,16 @@ class FileTransactionManager:
             
         return False
 
+    def _ensure_target_directory_exists(self, file_path: str) -> None:
+        """Ensure the target directory exists for a file path
+        
+        Args:
+            file_path (str): Path to the target file
+        """
+        target_dir = os.path.dirname(file_path)
+        if target_dir and not os.path.exists(target_dir):
+            os.makedirs(target_dir)
+
     def apply_file_transactions(self, file_transactions: FileTransactionList, settings: FileApplyTransactionSettings = None, dry_run: bool = False) -> FileTransactionSummary:
         """Apply the file transactions to the file system
         
@@ -91,6 +101,7 @@ class FileTransactionManager:
                     else:
                         summary.added_transactions.append(transaction)
                     if not dry_run:
+                        self._ensure_target_directory_exists(transaction.destination)
                         shutil.copy(transaction.source, transaction.destination)
                         if settings.write_file_metadata and transaction.metadata:
                             self._write_metadata_file(transaction.destination, transaction.metadata)
@@ -105,6 +116,7 @@ class FileTransactionManager:
                     else:
                         summary.added_transactions.append(transaction)
                     if not dry_run:
+                        self._ensure_target_directory_exists(transaction.destination)
                         shutil.move(transaction.source, transaction.destination)
                         if settings.write_file_metadata and transaction.metadata:
                             self._write_metadata_file(transaction.destination, transaction.metadata)
@@ -125,6 +137,7 @@ class FileTransactionManager:
                     else:
                         summary.linked_transactions.append(transaction)
                     if not dry_run:
+                        self._ensure_target_directory_exists(transaction.destination)
                         os.link(transaction.source, transaction.destination)
                         if settings.write_file_metadata and transaction.metadata:
                             self._write_metadata_file(transaction.destination, transaction.metadata)

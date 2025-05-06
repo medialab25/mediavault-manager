@@ -23,7 +23,7 @@ class CacheProcessor:
         expected_cache = MediaItemGroup(items=[])
 
         # Get list of all matrix_filepath in current cache
-        current_cache_matrix_filepaths = [item.get_matrix_filepath() for item in current_cache.items]
+        current_cache_matrix_filepaths = [item.get_relative_matrix_filepath() for item in current_cache.items]
         
         # Make clone of current state
         for item in current_cache.items:

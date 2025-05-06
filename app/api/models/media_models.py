@@ -75,11 +75,14 @@ class MediaItem(BaseModel):
         return any(item.equals(self) for item in other.items)
     
     def get_full_filepath(self, base_path: str) -> str:
-        return Path(base_path) / self.relative_title_filepath
+        return Path(base_path) / f"{self.media_prefix}-{self.quality}/{self.title}/{self.relative_title_filepath}"
     
     def get_full_matrix_filepath(self, base_path: str) -> str:
-        return Path(base_path) / self.get_matrix_filepath()
-    
+        return Path(base_path) / self.get_relative_matrix_filepath()
+
+    def get_full_title_filepath(self, base_path: str) -> str:
+        return Path(base_path) / self.title / self.relative_title_filepath
+
     def get_relative_matrix_filepath(self) -> str:
         return f"{self.media_prefix}-{self.quality}/{self.relative_title_filepath}"
 
@@ -89,10 +92,7 @@ class MediaItem(BaseModel):
 class MediaItemGroup(BaseModel):
     items: List[MediaItem]
     metadata: Optional[Dict[str, Any]] = None
-
-    def get_equal_items(self, other: "MediaItemGroup") -> List[MediaItem]:
-        return [item for item in other.items if item.equals(self)]
-    
+   
     def title_file_path_exists(self, title_file_path: str) -> bool:
         return any(item.relative_title_filepath == title_file_path for item in self.items)
 
