@@ -1,3 +1,4 @@
+import os
 from typing import Any
 from app.api.managers.media_manager import MediaManager
 from app.api.models.media_models import MediaDbType, MediaItemGroup
@@ -9,12 +10,12 @@ class CacheProcessor:
         self.config = config
         self.media_manager = MediaManager(config)
         
-    def get_processed_cache(self, current_cache: MediaItemGroup, cache_path: str) -> MediaItemGroup:
+    def get_expected_cache(self, current_cache: MediaItemGroup, cache_path: str) -> MediaItemGroup:
         """Get the expected cache structure
         
         Args:
             current_cache (MediaItemGroup | None): Current cache state. If None, will be fetched from media manager
-            
+            cache_path (str): The path to the cache
         Returns:
             MediaItemGroup: The expected cache structure
 
@@ -31,16 +32,14 @@ class CacheProcessor:
         # Remove items from expected cache, using get_matrix_filepath() as the comparison key
         for item in _remove_cache_items:
             # Find items with matching matrix_filepath
-            matching_items = [i for i in expected_cache.items if i.get_matrix_filepath() == item.get_matrix_filepath()]
+            matching_items = [i for i in expected_cache.items if i.equals(item)]
             for matching_item in matching_items:
                 expected_cache.items.remove(matching_item)
 
         # Add items to expected cache, if they don't already exist
         for item in _add_cache_items:
-            if item.get_matrix_filepath() not in current_cache_matrix_filepaths:
-                updated_item = item.clone()
-                updated_item.db_type = MediaDbType.CACHE
-                updated_item
-                expected_cache.items.append(item.clone())
+            if item.get_relative_matrix_filepath() not in current_cache_matrix_filepaths:
+                updated_item = item.clone_with_update(MediaDbType.CACHE)
+                expected_cache.items.append(updated_item)
 
         return expected_cache

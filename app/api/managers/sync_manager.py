@@ -1,7 +1,7 @@
 from typing import Any
 from app.api.managers.file_transaction_manager import FileTransactionManager
 from app.api.managers.media_manager import MediaManager
-from app.api.models.file_transaction_models import FileTransactionList, FileTransactionSettings, ExistingFileAction, FileApplyTransactionSettings
+from app.api.models.file_transaction_models import FileTransactionList, FileTransactionSettings, ExistingFileAction, FileApplyTransactionSettings, FileTransaction, FileOperationType
 from app.api.models.media_models import MediaDbType, MediaItemGroupDict, MediaItemGroup
 from app.api.models.search_request import SearchRequest
 from app.api.process.cache_processor import CacheProcessor
@@ -31,96 +31,95 @@ class SyncManager:
         try:
             logger.debug(f"Starting sync{' (dry run)' if dry_run else ''}")
 
+            # Get paths
+            cache_path = self.config["cache_path"]
+            media_export_path = self.config["media_export_path"]
+
             # Get current state
             current_media = self.media_manager.search_media(SearchRequest(db_type=[MediaDbType.MEDIA]))
             current_cache = self.media_manager.search_media(SearchRequest(db_type=[MediaDbType.CACHE]))
 
             # Process cache
-            expected_cache = self.cache_processor.get_processed_cache(current_cache)
+            expected_cache = self.cache_processor.get_expected_cache(current_cache, cache_path)
 
             # Get merged items group dict
             expected_merge_group = self.media_merger.merge_libraries(current_media, current_cache)
 
             # Implement cache changes
             # Get file transactions
-            expected_cache_file_transactions = self.get_cache_file_transactions(expected_cache, dry_run=dry_run)
-            expected_merge_file_transactions = self.get_merge_file_transactions(expected_merge_group, dry_run=dry_run)
+            expected_cache_file_transactions = self.get_cache_file_transactions(expected_cache, media_export_path, cache_path)
+            expected_merge_file_transactions = self.get_merge_file_transactions(expected_merge_group, media_export_path, cache_path)
 
-            expected_cache_file_transaction_summary = self.file_transaction_manager.apply_file_transactions(expected_cache_file_transactions, settings=None, dry_run=dry_run)
+            # Get files to remove
+            files_to_remove = self.get_files_to_remove(expected_merge_group, [media_export_path, cache_path])
 
+            # Combine all transactions into a single list
+            merge_file_transactions = FileTransactionList(transactions=[])
+            merge_file_transactions.transactions.extend(files_to_remove.transactions)
+            merge_file_transactions.transactions.extend(expected_cache_file_transactions.transactions)
+            merge_file_transactions.transactions.extend(expected_merge_file_transactions.transactions)
 
-
-            # Get file transactions
-#            cache_items = self.media_manager.search_media(SearchRequest(db_type=MediaDbType.CACHE))
-
-#            file_transactions = FileTransactionList(transactions=[])
-#            settings = FileTransactionSettings(existing_file_action=ExistingFileAction.OVERWRITE)
-#            for key, group in merged_items_group_dict.groups.items():
-#                merged_path = group.metadata["merged_path"]
-#                cache_path = group.metadata["cache_path"]
-#                # Set cache_data based on whether cache_merge_folder exists
-#                cache_data = "cache_merge_folder" in group.metadata
-#                cache_merge_folder = group.metadata.get("cache_merge_folder")
-                
-#                if cache_data:
-#                    cache_base_path = os.path.join(cache_path, cache_merge_folder)
-
-#                    for item in group.items:
-#                        # Is this item matching to matrix_file_path in the cache items
-#                        matching_item = next((cache_item for cache_item in cache_items.items if cache_item.get_matrix_file_path() == item.get_matrix_filepath()), None)
-#                        if matching_item:
-#                            source = matching_item.full_path
-#                            destination = os.path.join(cache_base_path, item.get_relative_filepath())
-#                        else:
-#                            source = item.full_path 
-#                            destination = os.path.join(merged_path, item.get_relative_filepath())
-#                else:
-#                    for item in group.items:
-#                        source = item.full_path
-#                        destination = os.path.join(merged_path, item.get_relative_filepath())
-
-                # Create metadata dictionary with necessary information
-#                file_transactions.copy(source, destination, settings=settings)
-
-            # Remove unreferenced files
-#            file_transactions = self.file_transaction_manager.get_file_transactions_remove_unreferenced_files(merged_path, file_transactions)
-
-            # Apply file transactions
-#            file_transaction_summary = self.file_transaction_manager.apply_file_transactions(file_transactions, settings=None, dry_run=dry_run)
+            file_transaction_summary = self.file_transaction_manager.apply_file_transactions(merge_file_transactions, settings=None, dry_run=dry_run)
 
             return {
-                "merged_items_group_dict": merged_items_group_dict,
                 "file_transaction_summary": file_transaction_summary,
-                "cache_file_transaction_summary": cache_file_transaction_summary
+                "expected_cache": expected_cache,
+                "expected_merge_group": expected_merge_group
             }
 
         except Exception as e:
             logger.error(f"Error in sync: {str(e)}", exc_info=True)
             raise e
-        
-    def flatten_merged_items_group_dict(self, merged_items_group_dict: MediaItemGroupDict) -> MediaItemGroup:
-        """Flatten the merged items group dict
-        
-        Args:
-            merged_items_group_dict (MediaItemGroupDict): The merged items group dict
-        """
-        flattened_items_group = MediaItemGroup(items=[])
-        for key, group in merged_items_group_dict.groups.items():
-            flattened_items_group.items.extend(group.items)
-        return flattened_items_group
-    
-    def get_cache_file_transactions(self, expected_cache: MediaItemGroup, dry_run: bool = False) -> FileTransactionList:
+           
+    def get_cache_file_transactions(self, expected_cache: MediaItemGroup, media_path: str, cache_path: str) -> FileTransactionList:
         file_transactions = FileTransactionList(transactions=[])
         settings = FileTransactionSettings(existing_file_action=ExistingFileAction.SKIP_IF_SAME_SIZE)
         for item in expected_cache.items:
-            file_transactions.copy(item.full_path, item.get_matrix_filepath(), settings=settings)
-
-        file_transaction_summary = self.file_transaction_manager.apply_file_transactions(file_transactions, settings=None, dry_run=dry_run)
-        return file_transaction_summary
+            source_path = str(item.get_full_filepath(media_path))
+            dest_path = str(item.get_full_filepath(cache_path))
+            file_transactions.transactions.append(FileTransaction(
+                type=FileOperationType.COPY,
+                source=source_path,
+                destination=dest_path,
+                settings=settings,
+                metadata={}
+            ))
+        return file_transactions
     
-    def get_merge_file_transactions(self, expected_merge_group: MediaItemGroup, dry_run: bool = False) -> FileTransactionList:
+    def get_merge_file_transactions(self, expected_merge_group: MediaItemGroup, media_path: str, cache_path: str) -> FileTransactionList:
         file_transactions = FileTransactionList(transactions=[])
         settings = FileTransactionSettings(existing_file_action=ExistingFileAction.SKIP_IF_SAME_SIZE)
         for item in expected_merge_group.items:
-            file_transactions.link(item.full_path, item.get_matrix_filepath(), settings=settings)
+            source_path = str(item.get_full_filepath(media_path))
+            dest_path = str(item.get_full_filepath(cache_path))
+            file_transactions.transactions.append(FileTransaction(
+                type=FileOperationType.LINK,
+                source=source_path,
+                destination=dest_path,
+                settings=settings,
+                metadata={}
+            ))
         return file_transactions
+
+    def get_files_to_remove(self, expected_group: MediaItemGroup, base_paths: list[str]) -> FileTransactionList:
+        file_transactions = FileTransactionList(transactions=[])
+
+        # For each file in base_path and all sub folders, check if it exists in expected_group
+        for base_path in base_paths:
+            for root, dirs, files in os.walk(base_path):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    relative_file_path = os.path.relpath(file_path, base_path)
+                    if not expected_group.title_file_path_exists(relative_file_path):
+                        file_transactions.transactions.append(FileTransaction(
+                            type=FileOperationType.DELETE,
+                            source=str(file_path),
+                            destination="",
+                            metadata={}
+                        ))
+        return file_transactions
+
+
+
+        
+        

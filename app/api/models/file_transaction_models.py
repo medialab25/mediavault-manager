@@ -33,7 +33,8 @@ class FileTransactionSettings(BaseModel):
 class FileApplyTransactionSettings(BaseModel):
     apply_delete_first: bool = False
     write_file_metadata: bool = False
-    clear_existing_file_path: str = None
+    clear_file_paths: list[str] = []
+    remove_empty_folders: bool = False
 
 class FileTransaction(BaseModel):
     type: FileOperationType

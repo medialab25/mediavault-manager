@@ -67,7 +67,13 @@ class MediaItem(BaseModel):
         result = self.clone()
         result.db_type = db_type
         return result
+    
+    def equals(self, other: "MediaItem") -> bool:
+        return self.get_relative_matrix_filepath() == other.get_relative_matrix_filepath()
 
+    def exists_in(self, other: "MediaItemGroup") -> bool:
+        return any(item.equals(self) for item in other.items)
+    
     def get_full_filepath(self, base_path: str) -> str:
         return Path(base_path) / self.relative_title_filepath
     
@@ -77,9 +83,18 @@ class MediaItem(BaseModel):
     def get_relative_matrix_filepath(self) -> str:
         return f"{self.media_prefix}-{self.quality}/{self.relative_title_filepath}"
 
+    def get_relative_title_folderpath(self) -> str:
+        return str(Path(self.relative_title_filepath).parent)
+
 class MediaItemGroup(BaseModel):
     items: List[MediaItem]
     metadata: Optional[Dict[str, Any]] = None
+
+    def get_equal_items(self, other: "MediaItemGroup") -> List[MediaItem]:
+        return [item for item in other.items if item.equals(self)]
+    
+    def title_file_path_exists(self, title_file_path: str) -> bool:
+        return any(item.relative_title_filepath == title_file_path for item in self.items)
 
 class MediaItemGroupList(BaseModel):
     groups: List[MediaItemGroup]

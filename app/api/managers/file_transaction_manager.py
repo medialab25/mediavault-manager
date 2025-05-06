@@ -109,11 +109,11 @@ class FileTransactionManager:
                         if settings.write_file_metadata and transaction.metadata:
                             self._write_metadata_file(transaction.destination, transaction.metadata)
                 elif transaction.type == FileOperationType.DELETE:
-                    if os.path.exists(transaction.path):
+                    if os.path.exists(transaction.source):
                         if not dry_run:
-                            os.remove(transaction.path)
+                            os.remove(transaction.source)
                             # Also remove metadata file if it exists
-                            meta_path = f"{transaction.path}.meta"
+                            meta_path = f"{transaction.source}.meta"
                             if os.path.exists(meta_path):
                                 os.remove(meta_path)
                         summary.deleted_transactions.append(transaction)
@@ -137,14 +137,19 @@ class FileTransactionManager:
             logging.error(f"Error applying file transactions: {str(e)}", exc_info=True)
             raise e
 
-    def get_file_transactions_remove_unreferenced_files(self, base_path: str, file_transactions: FileTransactionList) -> FileTransactionSummary:
+    def get_file_transactions_remove_unreferenced_files(self, base_path: str, file_transactions: FileTransactionList) -> FileTransactionList:
         # Recursively get all files in base_path, and if this does not exist in the file transactions for COPY, UPDATE then add to a delete trasnaction list
         delete_transactions = []
         for root, dirs, files in os.walk(base_path):
             for file in files:
                 file_path = os.path.join(root, file)
                 if not any(transaction.destination == file_path and transaction.type in [FileOperationType.COPY, FileOperationType.UPDATE] for transaction in file_transactions.transactions):
-                    delete_transactions.append(FileTransaction(type=FileOperationType.DELETE, path=file_path))
+                    delete_transactions.append(FileTransaction(
+                        type=FileOperationType.DELETE,
+                        source=file_path,
+                        destination="",
+                        metadata={}
+                    ))
 
         # Merge the file_transactions with the delete_transactions as a new file_transactions object and return it
         return FileTransactionList(transactions=file_transactions.transactions + delete_transactions)
