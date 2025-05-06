@@ -7,6 +7,7 @@ from typing import Any, List, Dict
 
 from app.api.managers.media_filter import MediaFilter
 from app.api.managers.media_manager import MediaManager
+from app.api.managers.media_query import MediaQuery
 from app.api.models.media_models import MediaDbType, MediaItem, MediaItemGroup, MediaItemGroupDict
 from app.api.models.search_request import SearchRequest
 
@@ -18,17 +19,16 @@ class FolderOperationStatus(Enum):
 class MediaMerger:
     def __init__(self, config: dict[str, Any]):
         self.config = config
-
-        self.media_manager = MediaManager(config)
         self.media_filter = MediaFilter(config)
 
-    def merge_libraries(self) -> MediaItemGroupDict:
-        """Merge the libraries into a single media item group dict
+    def merge_libraries(self, current_media: MediaItemGroup, current_cache: MediaItemGroup) -> MediaItemGroup:
+        """Merge the libraries into a single media item group
 
         Returns:
             MediaItemGroupDict: The merged media item group dict
         """
         merged_items_group_dict: MediaItemGroupDict = MediaItemGroupDict(groups={})
+        cached_items_group_dict: MediaItemGroupDict = MediaItemGroupDict(groups={})
         cache_path = self.config["cache_path"]
 
         for media_type, config in self.config["source_matrix"].items():
@@ -50,13 +50,8 @@ class MediaMerger:
             for quality in quality_order:
                 # get index for this quality
                 quality_index = quality_order.index(quality)
-                media_quality_items = self.media_manager.search_media(
-                    SearchRequest(
-                        quality=quality, 
-                        media_prefix=prefix,
-                        db_type=[MediaDbType.MEDIA]
-                    )
-                )  
+                media_query = MediaQuery(current_media)
+                media_quality_items = media_query.get_media_items(quality=quality, media_prefix=prefix)
 
                 for item in media_quality_items.items:
                     # get title/relative_path
@@ -72,22 +67,23 @@ class MediaMerger:
             # Flatten the lists of items
             all_merged_items = [item for items in merged_items_dict.values() for item in items]
 
-            # Add to item group by prefix-quality
-            for item in all_merged_items:
-                key = f"{item.media_prefix}-{item.quality}"
-                if key not in merged_items_group_dict.groups:
-                    metadata = {
+            metadata = {
                         "merged_path": merged_path,
-                        "prefix": item.media_prefix,
-                        "quality": item.quality,
                         "cache_path": cache_path,
                         "cache_data": config.get("cache_data", False)
                     }
-                    merged_items_group_dict.groups[key] = MediaItemGroup(
-                        items=[item],
-                        metadata=metadata
-                    )
-                else:
-                    merged_items_group_dict.groups[key].items.append(item)
 
-        return merged_items_group_dict
+            result_item_group: MediaItemGroup = MediaItemGroup(items=[])
+
+            # Add to item group by prefix-quality
+            for item in all_merged_items:
+                current_item = item
+
+                # Does current item exist in cache, using get_matrix_filepath as comparison key
+                cache_item = next((cache_item for cache_item in current_cache.items if cache_item.get_matrix_filepath() == item.get_matrix_filepath()), None)
+                if cache_item:
+                    current_item = cache_item
+
+                result_item_group.items.append(current_item)
+
+        return result_item_group

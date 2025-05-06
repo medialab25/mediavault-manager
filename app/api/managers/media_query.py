@@ -24,3 +24,6 @@ class MediaQuery:
             return [item for item in self.media_item_group.items if item.id in item_ids and item.db_type == db_type]
         else:
             return [item for item in self.media_item_group.items if item.id in item_ids]
+
+    def get_item_in_target_group(self, source: MediaItem, target_group: MediaItemGroup) -> MediaItem:
+        return next((target_item for target_item in target_group.items if target_item.get_matrix_filepath() == source.get_matrix_filepath()), None)

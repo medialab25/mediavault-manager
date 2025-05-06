@@ -18,6 +18,7 @@ class FileOperationType(Enum):
 class ExistingFileAction(Enum):
     OVERWRITE = (0, "overwrite")
     SKIP = (1, "skip")
+    SKIP_IF_SAME_SIZE = (2, "skip_if_same_size")
 
     def __init__(self, order: int, value: str):
         self.order = order
@@ -30,6 +31,7 @@ class FileTransactionSettings(BaseModel):
         return FileTransactionSettings(existing_file_action=ExistingFileAction.OVERWRITE)
 
 class FileApplyTransactionSettings(BaseModel):
+    apply_delete_first: bool = False
     write_file_metadata: bool = False
     clear_existing_file_path: str = None
 

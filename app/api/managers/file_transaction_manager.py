@@ -24,6 +24,31 @@ class FileTransactionManager:
         with open(meta_path, 'w') as f:
             json.dump(metadata, f, indent=2)
 
+    def _should_skip_file(self, source_path: str, dest_path: str, settings: FileTransactionSettings) -> bool:
+        """Check if we should skip copying/moving a file based on the settings
+        
+        Args:
+            source_path (str): Path to the source file
+            dest_path (str): Path to the destination file
+            settings (FileTransactionSettings): Settings to check against
+            
+        Returns:
+            bool: True if the file should be skipped, False otherwise
+        """
+        if not os.path.exists(dest_path):
+            return False
+            
+        if settings.existing_file_action == ExistingFileAction.OVERWRITE:
+            return False
+            
+        if settings.existing_file_action == ExistingFileAction.SKIP:
+            return True
+            
+        if settings.existing_file_action == ExistingFileAction.SKIP_IF_SAME_SIZE:
+            return os.path.getsize(source_path) == os.path.getsize(dest_path)
+            
+        return False
+
     def apply_file_transactions(self, file_transactions: FileTransactionList, settings: FileApplyTransactionSettings = None, dry_run: bool = False) -> FileTransactionSummary:
         """Apply the file transactions to the file system
         
@@ -46,12 +71,20 @@ class FileTransactionManager:
                 updated_transactions=[]
             )
             
-            # Apply list in this order: DELETE, LINK, COPY, MOVE
+            # Apply list in this order: DELETE, LINK, COPY, MOVE, if apply_delete_first set
             transactions = file_transactions.transactions 
-            transactions.sort(key=lambda x: x.type.order)
+            if settings.apply_delete_first:
+               # Make a copy of the transactions list
+               transactions = FileTransactionList(transactions=[transactions])
+               transactions.sort(key=lambda x: x.type.order)
+
             for transaction in transactions:
+                transaction_settings = transaction.settings or self.file_transaction_settings
                 if transaction.type == FileOperationType.COPY:
                     if os.path.exists(transaction.destination):
+                        if self._should_skip_file(transaction.source, transaction.destination, transaction_settings):
+                            summary.skipped_transactions.append(transaction)
+                            continue
                         if not dry_run:
                             os.remove(transaction.destination)
                         summary.updated_transactions.append(transaction)
@@ -63,6 +96,9 @@ class FileTransactionManager:
                             self._write_metadata_file(transaction.destination, transaction.metadata)
                 elif transaction.type == FileOperationType.MOVE:
                     if os.path.exists(transaction.destination):
+                        if self._should_skip_file(transaction.source, transaction.destination, transaction_settings):
+                            summary.skipped_transactions.append(transaction)
+                            continue
                         if not dry_run:
                             os.remove(transaction.destination)
                         summary.updated_transactions.append(transaction)

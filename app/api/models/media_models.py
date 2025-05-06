@@ -53,6 +53,20 @@ class MediaItem(BaseModel):
     episode: Optional[int] = None
     extended: Optional[ExtendedMediaInfo] = None
 
+    def clone(self) -> "MediaItem":
+        return MediaItem(
+            id=self.id,
+            db_type=self.db_type,
+            full_path=self.full_path,
+            title_path=self.title_path,
+            media_type=self.media_type,
+            media_prefix=self.media_prefix,
+            quality=self.quality,
+            title=self.title,
+            season=self.season,
+            episode=self.episode,
+        )
+
     # Matrix file path is title_path/{media_prefix}-{quality}/{get_relative_folderpath()}/{get_relative_filepath()}
     def get_matrix_folderpath(self) -> str:
         """Get the subpath of the file relative to its title folder by removing title_path"""
