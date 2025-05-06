@@ -41,10 +41,8 @@ class MediaGroupFolderList(BaseModel):
     groups: List[MediaGroupFolder]
 
 class MediaItem(BaseModel):
-    id: str
     db_type: MediaDbType
-    full_path: str
-    title_path: str
+    relative_title_filepath: str   # The filepath relative to the top-level title
     media_type: str
     media_prefix: str
     quality: str
@@ -55,63 +53,29 @@ class MediaItem(BaseModel):
 
     def clone(self) -> "MediaItem":
         return MediaItem(
-            id=self.id,
             db_type=self.db_type,
-            full_path=self.full_path,
-            title_path=self.title_path,
             media_type=self.media_type,
             media_prefix=self.media_prefix,
             quality=self.quality,
             title=self.title,
             season=self.season,
             episode=self.episode,
+            relative_title_filepath=self.relative_title_filepath
         )
+    
+    def clone_with_update(self, db_type: MediaDbType) -> "MediaItem":
+        result = self.clone()
+        result.db_type = db_type
+        return result
 
-    # Matrix file path is title_path/{media_prefix}-{quality}/{get_relative_folderpath()}/{get_relative_filepath()}
-    def get_matrix_folderpath(self) -> str:
-        """Get the subpath of the file relative to its title folder by removing title_path"""
-        # Convert both paths to Path objects
-        return self.get_matrix_filepath().parent
-        
-    def get_matrix_filepath(self) -> str:
-        """Get the subpath of the file relative to its title folder by removing title_path"""
-        # Convert both paths to Path objects
-        full_path = Path(self.full_path)
-        title_path_obj = Path(self.title_path)
-        
-        try:
-            # Get the relative path by removing the title_path
-            return str(full_path.relative_to(title_path_obj))
-        except ValueError:
-            # If paths are not related, return empty string
-            return ""
-
-
-    def get_relative_filepath(self) -> str:
-        """Get the subpath of the file relative to its title folder by removing title_path"""
-        # Convert both paths to Path objects
-        full_path = Path(self.full_path)
-        title_path_obj = Path(self.title_path)
-        
-        try:
-            # Get the relative path by removing the title_path
-            return str(full_path.relative_to(title_path_obj))
-        except ValueError:
-            # If paths are not related, return empty string
-            return ""
-
-    def get_relative_folderpath(self) -> str:
-        """Get the subpath of the file relative to its title folder by removing title_path"""
-        # Convert both paths to Path objects
-        full_path = Path(self.full_path)
-        title_path_obj = Path(self.title_path)
-        
-        try:
-            # Get the relative path by removing the title_path and return parent folder
-            return str(full_path.relative_to(title_path_obj).parent)
-        except ValueError:
-            # If paths are not related, return empty string
-            return ""
+    def get_full_filepath(self, base_path: str) -> str:
+        return Path(base_path) / self.relative_title_filepath
+    
+    def get_full_matrix_filepath(self, base_path: str) -> str:
+        return Path(base_path) / self.get_matrix_filepath()
+    
+    def get_relative_matrix_filepath(self) -> str:
+        return f"{self.media_prefix}-{self.quality}/{self.relative_title_filepath}"
 
 class MediaItemGroup(BaseModel):
     items: List[MediaItem]

@@ -5,7 +5,7 @@ from app.api.managers.media_server import MediaServer
 from app.api.models.media_models import MediaFileItem, MediaItemFolder, MediaGroupFolder
 from app.api.models.merge_models import MergeResult
 from app.core.status import Status
-from app.api.managers.media_merger import MediaMerger
+from app.api.process.media_merger import MediaMerger
 from app.api.validators.validators import validate_media_merge_settings
 from app.core.settings import settings
 from app.api.models.response import APIResponse

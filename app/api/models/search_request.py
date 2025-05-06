@@ -23,6 +23,8 @@ class SearchRequest(BaseModel):
     media_prefix: Optional[str] = None # Optional media prefix to search for
     db_type: Optional[List[MediaDbType]] = [MediaDbType.MEDIA]  # List of database types to search in
     cache_export_filter: Optional[SearchCacheExportFilter] = SearchCacheExportFilter.ALL # Whether to include cache export in the search
+    matrix_filepath: Optional[str] = None # Optional matrix filepath to search for
+    relative_filepath: Optional[str] = None # Optional relative filepath to search for
 
 class SearchRequestAll(SearchRequest):
     """

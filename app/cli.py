@@ -79,23 +79,6 @@ def refresh():
     result = asyncio.run(make_request("POST", "api/media/refresh"))
     console.print(f"[green]Success:[/green] {result['message']}")
 
-@media_app.command()
-def merge(
-    refresh: bool = typer.Option(False, "--refresh", "-r", help="Refresh the media library after merging"),
-    dry_run: bool = typer.Option(False, "--dry-run", "-n", help="Show what would be merged without making changes"),
-    json: bool = typer.Option(False, "--json", "-j", help="Show the result in JSON format")
-):
-    """Merge the media library"""
-    console.print("[yellow]Merging media library...[/yellow]")
-    result = asyncio.run(make_request("POST", f"api/media/merge?refresh={str(refresh).lower()}&dry_run={str(dry_run).lower()}"))
-    console.print(f"[green]Success:[/green] {result['message']}")
-    
-    if json:
-        console.print_json(data=result)
-   
-    if refresh and result.get('data', {}).get('refresh'):
-        console.print(f"[green]Refresh Status:[/green] {result['data']['refresh']}")
-
 # Search command
 @app.command()
 def search(
@@ -103,30 +86,33 @@ def search(
     query: Optional[str] = typer.Argument(None, help="Search query string"),
     media_type: Optional[str] = typer.Option(None, "--media-type", "-m", help="Media type (tv,movie)"),
     quality: Optional[str] = typer.Option(None, "--quality", "-q", help="Quality (hd,uhd,4k)"),
-    id: Optional[str] = typer.Option(None, "--id", "-i", help="Media ID to search for"),
     add_extended_info: bool = typer.Option(False, "--extended-info", "-e", help="Add extended info"),
     season: Optional[int] = typer.Option(None, "--season", "-s", help="Season number"),
     episode: Optional[int] = typer.Option(None, "--episode", "-e", help="Episode number"),
     db_type: Optional[str] = typer.Option("media", "--db-type", "-d", help="Database types (comma-separated: media,cache,shadow)"),
+    matrix_filepath: Optional[str] = typer.Option(None, "--matrix-filepath", "-f", help="Matrix filepath"),
+    relative_filepath: Optional[str] = typer.Option(None, "--relative-filepath", "-r", help="Relative filepath"),
     cache_export_filter: Optional[str] = typer.Option(None, "--cache-export-filter", "-c", help="Cache export filter (comma-separated: all,cache_export,not_cache_export)")
 ):
     """Search for media using the search request endpoint"""
     try:
         # If no query or id provided, show help and exit
-        if not query and not id:
-            console.print("[yellow]No search query or ID provided.[/yellow]")
+        if not query:
+            console.print("[yellow]No search query provided.[/yellow]")
             console.print(ctx.get_help())
             return
 
-        search_term = id if id else query
+        search_term = query
         console.print(f"[yellow]Searching for '{search_term}'...[/yellow]")
         
         # Build query parameters
         params = {}
         if query:
             params["query"] = query
-        if id:
-            params["id"] = id
+        if matrix_filepath is not None:
+            params["matrix_filepath"] = matrix_filepath
+        if relative_filepath is not None:
+            params["relative_filepath"] = relative_filepath
         if media_type is not None:
             params["media_type"] = media_type
         if quality is not None:

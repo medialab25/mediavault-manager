@@ -160,11 +160,11 @@ class MediaManager:
         filtered_media_groups = []
         for media_group in media_groups.groups:
 
-            if request.cache_export_filter == SearchCacheExportFilter.APPLY and not media_group.cache_export:
-                continue
+            #if request.cache_export_filter == SearchCacheExportFilter.APPLY and not media_group.cache_export:
+           #     continue
 
-            if request.cache_export_filter == SearchCacheExportFilter.EXCLUDE and media_group.cache_export:
-                continue
+           # if request.cache_export_filter == SearchCacheExportFilter.EXCLUDE and media_group.cache_export:
+            #    continue
 
             if request.media_type and request.media_type != media_group.media_type:
                 continue
@@ -243,7 +243,8 @@ class MediaManager:
             title=title,
             season=season,
             episode=episode,
-            extended=extended
+            extended=extended,
+            relative_title_filepath=file.name
         )
 
     def populate_extended_info(self, media_item: MediaItem) -> MediaItem:
