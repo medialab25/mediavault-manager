@@ -34,10 +34,12 @@ class SyncManager:
         try:
             logger.debug(f"Starting sync{' (dry run)' if dry_run else ''}")
 
+            media_library_info = self.media_manager.get_media_library_info()
+
             # Get paths
-            cache_path = self.config["cache_path"]
-            media_export_path = self.config["media_export_path"]
-            default_source_path = self.config["default_source_path"]
+            cache_path = media_library_info.cache_library_path
+            media_export_path = media_library_info.export_library_path
+            default_source_path = media_library_info.media_library_path
 
             # Get current state
             current_media = self.media_manager.search_media(SearchRequest(db_type=[MediaDbType.MEDIA]))
@@ -47,7 +49,12 @@ class SyncManager:
             expected_cache = self.cache_processor.get_expected_cache(current_cache, cache_path)
 
             # Get merged items group dict
-            expected_merge_groups = self.media_merger.merge_libraries(current_media, expected_cache)
+            expected_merge_group = self.media_merger.merge_libraries(current_media, expected_cache)
+
+            return expected_cache, expected_merge_group
+
+
+
 
             expected_cache_file_transactions = self.get_cache_file_transactions(expected_cache, default_source_path, cache_path)
             export_path_list = []

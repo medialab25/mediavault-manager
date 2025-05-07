@@ -3,7 +3,7 @@ from pathlib import Path
 from app.api.managers.media_filter import MediaFilter
 from app.api.models.media_models import (
     ExtendedMediaInfo, MediaDbType, MediaGroupFolder, MediaGroupFolderList,
-    MediaFileItem, MediaItemFolder, MediaItem, MediaItemGroup
+    MediaFileItem, MediaItemFolder, MediaItem, MediaItemGroup, MediaLibraryInfo, MediaMatrixInfo
 )
 from app.api.models.search_request import SearchCacheExportFilter, SearchRequest
 from app.core.config import Config
@@ -15,11 +15,12 @@ import os
 class MediaManager:
     def __init__(self, config: dict[str, Any]):
         self.config = config
-        # Initialize paths from config
-        self.media_base_path = Path(config.get("default_source_path"))
-        self.media_full_base_path = Path(config.get("default_full_source_path"))
-        self.cache_base_path = Path(config.get("cache_path"))
-        self.system_data_path = Path(config.get("system_data_path"))
+        # Initialize paths from config as strings
+        self.media_base_path = str(Path(config.get("default_source_path")))
+        self.media_full_base_path = str(Path(config.get("default_full_source_path")))
+        self.cache_base_path = str(Path(config.get("cache_path")))
+        self.export_base_path = str(Path(config.get("media_export_path")))
+        self.system_data_path = str(Path(config.get("system_data_path")))
 
     def _generate_media_id(self, relative_path: str, media_type: str, media_prefix: str, title: str, season: Optional[int] = None, episode: Optional[int] = None) -> str:
         """Generate a unique ID for the media item based on its properties."""
@@ -53,13 +54,13 @@ class MediaManager:
 
     def get_db_path(self, db_type: MediaDbType) -> Path:
         if db_type == MediaDbType.MEDIA:
-            return self.media_base_path
+            return Path(self.media_base_path)
         elif db_type == MediaDbType.CACHE:
-            return self.cache_base_path
+            return Path(self.cache_base_path)
         elif db_type == MediaDbType.SHADOW:
-            return self.cache_shadow_path
+            return Path(self.cache_shadow_path)
         else:
-            return self.media_base_path  # Default to media base path for UNDEFINED
+            return Path(self.media_base_path)  # Default to media base path for UNDEFINED
 
     #def get_db_path_with_base_path(self, db_type: MediaDbType, base_path: str) -> Path:
 
@@ -214,29 +215,15 @@ class MediaManager:
         
         extended = None
         if add_extended_info:
+            stat = file.stat()
             extended = ExtendedMediaInfo(
-                size=file.stat().st_size,
-                created_at=file.stat().st_ctime,
-                updated_at=file.stat().st_mtime,
-                metadata=None)
+                size=stat.st_size,
+                created_at=stat.st_ctime,
+                updated_at=stat.st_mtime,
+                metadata={})
             
         return MediaItem(
-            id=self._generate_media_id(
-                relative_path=self.get_media_relative_path(
-                    media_prefix=media_group.media_prefix,
-                    quality=media_group.quality,
-                    title=title,
-                    file_name=file.name
-                ),
-                media_type=media_group.media_type,
-                media_prefix=media_group.media_prefix,
-                title=title,
-                season=season,
-                episode=episode
-            ),
             db_type=db_type,
-            full_path=file.as_posix(),
-            title_path=media_group.path,
             media_type=media_group.media_type,
             media_prefix=media_group.media_prefix,
             quality=media_group.quality,
@@ -244,7 +231,8 @@ class MediaManager:
             season=season,
             episode=episode,
             extended=extended,
-            relative_title_filepath=file.name
+            relative_title_filepath=file.name,
+            metadata={}
         )
 
     def populate_extended_info(self, media_item: MediaItem) -> MediaItem:
@@ -254,3 +242,30 @@ class MediaManager:
             created_at=media_item.created_at,
             updated_at=media_item.updated_at,
             metadata=media_item.metadata)
+        
+    def get_media_matrix_info(self) -> dict[str, MediaMatrixInfo]:
+        """Get the media matrix info"""
+        source_matrix = self.config.get("source_matrix")
+        media_matrix_info = {}
+        for media_key, config in source_matrix.items():
+            media_type = config["media_type"] if config["media_type"] else media_key
+            media_prefix = config["prefix"] if config["prefix"] else media_key
+            media_matrix_info[media_key] = MediaMatrixInfo(
+                media_type=media_type,
+                media_prefix=media_prefix,
+                quality_order=config["quality_order"],
+                merge_name=config["merge_name"],
+                use_cache=config["use_cache"]
+            )
+        return media_matrix_info
+
+    def get_media_library_info(self) -> MediaLibraryInfo:
+        """Get the media library info"""
+        media_matrix_info = self.get_media_matrix_info()
+        return MediaLibraryInfo(
+            media_matrix_info=media_matrix_info,
+            media_library_path=self.media_base_path,
+            cache_library_path=self.cache_base_path,
+            export_library_path=self.export_base_path,
+            system_data_path=self.system_data_path
+        )

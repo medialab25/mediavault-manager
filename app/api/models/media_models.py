@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
 
 # enum for the db types, MEDIA, CACHE, SHADOW
-class MediaDbType(Enum):
+class MediaDbType(str,Enum):
     MEDIA = "media"
     CACHE = "cache"
     SHADOW = "shadow"
@@ -41,7 +41,7 @@ class MediaGroupFolderList(BaseModel):
     groups: List[MediaGroupFolder]
 
 class MediaItem(BaseModel):
-    db_type: MediaDbType
+    db_type: MediaDbType    # = Field(alias="db_type")
     relative_title_filepath: str   # The filepath relative to the top-level title
     media_type: str
     media_prefix: str
@@ -50,6 +50,7 @@ class MediaItem(BaseModel):
     season: Optional[int] = None
     episode: Optional[int] = None
     extended: Optional[ExtendedMediaInfo] = None
+    metadata: Optional[Dict[str, Any]] = None
 
     def clone(self) -> "MediaItem":
         return MediaItem(
@@ -60,7 +61,9 @@ class MediaItem(BaseModel):
             title=self.title,
             season=self.season,
             episode=self.episode,
-            relative_title_filepath=self.relative_title_filepath
+            relative_title_filepath=self.relative_title_filepath,
+            extended=self.extended,
+            metadata=self.metadata.copy() if self.metadata else None
         )
     
     def clone_with_update(self, db_type: MediaDbType) -> "MediaItem":
@@ -100,6 +103,7 @@ class MediaItem(BaseModel):
 
     def get_relative_title_folderpath(self) -> str:
         return str(Path(self.relative_title_filepath).parent)
+    
 
 class MediaItemGroup(BaseModel):
     items: List[MediaItem]
@@ -117,3 +121,17 @@ class MediaItemGroupList(BaseModel):
 
 class MediaItemGroupDict(BaseModel):
     groups: Dict[str, MediaItemGroup]
+
+class MediaMatrixInfo(BaseModel):
+    media_type: str 
+    media_prefix: str
+    quality_order: List[str]
+    merge_name: str
+    use_cache: bool
+    
+class MediaLibraryInfo(BaseModel):
+    media_matrix_info: Dict[str, MediaMatrixInfo]
+    media_library_path: str
+    cache_library_path: str
+    export_library_path: str
+    system_data_path: str

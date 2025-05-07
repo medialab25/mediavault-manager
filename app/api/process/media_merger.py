@@ -5,6 +5,7 @@ from enum import Enum
 from dataclasses import dataclass
 from typing import Any, List, Dict
 
+from app.api.managers.item_manager import ItemManager
 from app.api.managers.media_filter import MediaFilter
 from app.api.managers.media_manager import MediaManager
 from app.api.managers.media_query import MediaQuery
@@ -21,34 +22,35 @@ class MediaMerger:
         self.config = config
         self.media_filter = MediaFilter(config)
         self.cache_path = config["cache_path"]
+        self.media_manager = MediaManager(config)
+        self.media_library_info = self.media_manager.get_media_library_info()   
+        self.item_manager = ItemManager(config)
 
-    def merge_libraries(self, current_media: MediaItemGroup, current_cache: MediaItemGroup) -> MediaItemGroupList:
+    def merge_libraries(self, current_media: MediaItemGroup, current_cache: MediaItemGroup) -> MediaItemGroup:
         """Merge the libraries into a single media item group
 
         Returns:
-            MediaItemGroupDict: The merged media item group dict
+            MediaItemGroup: The merged media item group
         """
-        result_item_groups = []
-        for media_type, config in self.config["source_matrix"].items():
+        result_items = []
+        for media_key, media_matrix_info in self.media_library_info.media_matrix_info.items():
             # Initialize result group
             result_item_group = MediaItemGroup(items=[])
     
-            merge_name = config.get("merge_name", None)
+            merge_name = media_matrix_info.merge_name
             if not merge_name:
                 continue
 
-            if not config.get("quality_order"):
+            if not media_matrix_info.quality_order:
                 continue
 
             # Get quality and prefix from config
-            quality_order = config["quality_order"]
-            prefix = config["prefix"]
-            use_cache = config.get("use_cache", False)
+            quality_order = media_matrix_info.quality_order
+            prefix = media_matrix_info.media_prefix
+            use_cache = media_matrix_info.use_cache
 
             result_item_group.metadata = {
-                "prefix": prefix,
-                "merge_name": merge_name,
-                "use_cache": use_cache
+                "media_key": media_key
             }
 
             # Get all from this quality and prefix
@@ -75,12 +77,11 @@ class MediaMerger:
             # Flatten the lists of items
             all_merged_items = [item for items in merged_items_dict.values() for item in items]
 
-            # Add to item group by prefix-quality
             for item in all_merged_items:
                 current_item = item
 
                 # Does current item exist in cache, using get_matrix_filepath as comparison key
-                cache_items = [item for item in current_cache.items if item.get_relative_matrix_filepath() == current_item.get_relative_matrix_filepath()]
+                cache_items = self.item_manager.get_matching_items(current_item, current_cache.items)
 
                 if cache_items and len(cache_items) > 0:
                     for cache_item in cache_items:
@@ -89,7 +90,6 @@ class MediaMerger:
                         else:
                             current_item = item
 
-                result_item_group.items.append(current_item)
-
-            result_item_groups.append(result_item_group)
-        return result_item_groups
+                result_items.append(current_item)
+                
+        return MediaItemGroup(items=result_items)

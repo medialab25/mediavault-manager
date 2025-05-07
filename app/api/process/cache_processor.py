@@ -1,14 +1,17 @@
 import os
 from typing import Any
+from app.api.managers.data_manager import DataManager
+from app.api.managers.item_manager import ItemManager
 from app.api.managers.media_manager import MediaManager
 from app.api.models.media_models import MediaDbType, MediaItemGroup
-from app.api.managers.cache_manager import _add_cache_items, _remove_cache_items
 from app.api.models.search_request import SearchRequest
 
 class CacheProcessor:
     def __init__(self, config: dict[str, Any]):
         self.config = config
         self.media_manager = MediaManager(config)
+        self.item_manager = ItemManager(config)
+        self.data_manager = DataManager(config)
         
     def get_expected_cache(self, current_cache: MediaItemGroup, cache_path: str) -> MediaItemGroup:
         """Get the expected cache structure
@@ -20,27 +23,14 @@ class CacheProcessor:
             MediaItemGroup: The expected cache structure
 
         """
-        global _remove_cache_items, _add_cache_items
         expected_cache = MediaItemGroup(items=[])
 
-        # Get list of all matrix_filepath in current cache
-        current_cache_matrix_filepaths = [item.get_relative_matrix_filepath() for item in current_cache.items]
-        
-        # Make clone of current state
-        for item in current_cache.items:
-            expected_cache.items.append(item.clone())
-
         # Remove items from expected cache, using get_matrix_filepath() as the comparison key
-        for item in _remove_cache_items:
-            # Find items with matching matrix_filepath
-            matching_items = [i for i in expected_cache.items if i.equals(item)]
-            for matching_item in matching_items:
-                expected_cache.items.remove(matching_item)
+        remove_items = self.data_manager.get_remove_cache_items()
+        expected_cache = self.item_manager.remove_items_from_list(expected_cache.items, remove_items)
 
         # Add items to expected cache, if they don't already exist
-        for item in _add_cache_items:
-            if item.get_relative_matrix_filepath() not in current_cache_matrix_filepaths:
-                updated_item = item.clone_with_update(MediaDbType.CACHE)
-                expected_cache.items.append(updated_item)
+        add_items = [item.clone_with_update(MediaDbType.CACHE) for item in self.data_manager.get_add_cache_items()]
+        expected_cache = self.item_manager.merge_unique_items(expected_cache, add_items)
 
-        return expected_cache
+        return MediaItemGroup(items=expected_cache)
