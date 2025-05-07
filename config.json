@@ -23,7 +23,8 @@
                 "prefix": "tv",
                 "media_type": "tv",
                 "quality_order": ["uhd", "hd"],
-                "merge_name": "tv-merged",
+                "merge_prefix": "tv",
+                "merge_quality": "merged",
                 "use_cache": true
             }
         },

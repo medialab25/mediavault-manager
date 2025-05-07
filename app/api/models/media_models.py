@@ -63,7 +63,7 @@ class MediaItem(BaseModel):
             episode=self.episode,
             relative_title_filepath=self.relative_title_filepath,
             extended=self.extended,
-            metadata=self.metadata.copy() if self.metadata else None
+            metadata=self.metadata.copy() if self.metadata else {}
         )
     
     def clone_with_update(self, db_type: MediaDbType) -> "MediaItem":
@@ -82,15 +82,16 @@ class MediaItem(BaseModel):
                 return self.get_full_title_filepath(cache_path)
             else:
                 return self.get_full_filepath(cache_path)
-            
+
+    def get_full_filepath(self, base_path: str) -> str:
+        return Path(base_path) / f"{self.media_prefix}-{self.quality}/{self.title}/{self.relative_title_filepath}"
+
     def equals(self, other: "MediaItem") -> bool:
         return self.get_relative_matrix_filepath() == other.get_relative_matrix_filepath()
 
     def exists_in(self, other: "MediaItemGroup") -> bool:
         return any(item.equals(self) for item in other.items)
     
-    def get_full_filepath(self, base_path: str) -> str:
-        return Path(base_path) / f"{self.media_prefix}-{self.quality}/{self.title}/{self.relative_title_filepath}"
     
     def get_full_matrix_filepath(self, base_path: str) -> str:
         return Path(base_path) / self.get_relative_matrix_filepath()
@@ -109,6 +110,9 @@ class MediaItemGroup(BaseModel):
     items: List[MediaItem]
     metadata: Optional[Dict[str, Any]] = None
    
+    def clone(self) -> "MediaItemGroup":
+        return MediaItemGroup(items=[item.clone() for item in self.items])
+
     def title_file_path_exists(self, title_file_path: str) -> bool:
         return any(item.relative_title_filepath == title_file_path for item in self.items)
 
@@ -126,7 +130,8 @@ class MediaMatrixInfo(BaseModel):
     media_type: str 
     media_prefix: str
     quality_order: List[str]
-    merge_name: str
+    merge_prefix: str
+    merge_quality: str
     use_cache: bool
     
 class MediaLibraryInfo(BaseModel):

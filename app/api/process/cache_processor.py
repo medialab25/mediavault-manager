@@ -12,8 +12,9 @@ class CacheProcessor:
         self.media_manager = MediaManager(config)
         self.item_manager = ItemManager(config)
         self.data_manager = DataManager(config)
+        self.media_path = self.media_manager.get_media_library_info().media_library_path
         
-    def get_expected_cache(self, current_cache: MediaItemGroup, cache_path: str) -> MediaItemGroup:
+    def get_expected_cache(self, current_cache: MediaItemGroup) -> MediaItemGroup:
         """Get the expected cache structure
         
         Args:
@@ -23,14 +24,17 @@ class CacheProcessor:
             MediaItemGroup: The expected cache structure
 
         """
-        expected_cache = MediaItemGroup(items=[])
+        expected_cache_items = current_cache.items
 
         # Remove items from expected cache, using get_matrix_filepath() as the comparison key
         remove_items = self.data_manager.get_remove_cache_items()
-        expected_cache = self.item_manager.remove_items_from_list(expected_cache.items, remove_items)
+        
+        expected_cache_items = self.item_manager.remove_items_from_list(expected_cache_items, remove_items)
 
         # Add items to expected cache, if they don't already exist
         add_items = [item.clone_with_update(MediaDbType.CACHE) for item in self.data_manager.get_add_cache_items()]
-        expected_cache = self.item_manager.merge_unique_items(expected_cache, add_items)
+        for item in add_items:
+            item.metadata["src_file_path"] = str(item.get_full_filepath(self.media_path))
+            expected_cache_items.append(item)
 
-        return MediaItemGroup(items=expected_cache)
+        return MediaItemGroup(items=expected_cache_items)

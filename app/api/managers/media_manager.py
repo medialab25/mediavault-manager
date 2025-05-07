@@ -1,4 +1,5 @@
 # Management of media using the file_manager class
+import json
 from pathlib import Path
 from app.api.managers.media_filter import MediaFilter
 from app.api.models.media_models import (
@@ -117,24 +118,6 @@ class MediaManager:
         # Return combined results
         return MediaItemGroup(items=all_items)
 
-    def get_media_target_path(self, db_type: MediaDbType, media_item: MediaItem) -> Path:
-        """Get the target path for the media item based on the media type and quality"""
-        media_prefix = media_item.media_prefix
-        quality = media_item.quality
-        file_name = media_item.full_path.split("/")[-1]
-        return self.get_db_path(db_type) / f"{media_prefix}-{quality}" / media_item.title / file_name
-
-    def get_media_relative_path_from_media_item(self, media_item: MediaItem) -> str:
-        """Get the relative path for the media item based on the media type and quality"""
-        media_prefix = media_item.media_prefix
-        quality = media_item.quality
-        file_name = media_item.full_path.split("/")[-1]
-        return os.path.join(f"{media_prefix}-{quality}", media_item.title, file_name)
-
-    def get_media_relative_path(self, media_prefix: str, quality: str, title: str, file_name: str) -> str:
-        """Get the relative path for the media item based on the media type and quality"""
-        return os.path.join(f"{media_prefix}-{quality}", title, file_name)
-
     def get_relative_path_to_title(self, title_path: str, file_path: str) -> str:
         """Get the subpath of the file relative to its title folder by removing title_path"""
         # Convert both paths to Path objects
@@ -191,7 +174,7 @@ class MediaManager:
                         if file.is_file():
                             add_season_episode = media_group.media_type == "tv"
                             media_item = self._create_media_item_from_file(
-                                file=file,
+                                full_file_path=file,
                                 media_group=media_group,
                                 title=folder.name,
                                 db_type=db_type,
@@ -206,22 +189,31 @@ class MediaManager:
         # Return the filtered results
         return MediaItemGroup(items=media_items)
 
-    def _create_media_item_from_file(self, file: Path, media_group: MediaGroupFolder, title: str, db_type: MediaDbType, add_season_episode: bool = False, add_extended_info: bool = False) -> MediaItem:
+    def _create_media_item_from_file(self, full_file_path: Path, media_group: MediaGroupFolder, title: str, db_type: MediaDbType, add_season_episode: bool = False, add_extended_info: bool = False) -> MediaItem:
         season = None
         episode = None
         
         if add_season_episode:
-            season, episode = self._parse_episode_info(file.name)
+            season, episode = self._parse_episode_info(full_file_path.name)
         
         extended = None
         if add_extended_info:
-            stat = file.stat()
+            stat = full_file_path.stat()
             extended = ExtendedMediaInfo(
                 size=stat.st_size,
                 created_at=stat.st_ctime,
                 updated_at=stat.st_mtime,
                 metadata={})
             
+
+        # Get the relative path to the title inline
+        title_path = Path(media_group.path) / title
+        relative_title_filepath = self.get_relative_path_to_title(title_path, full_file_path)
+
+        # Get file metadata if exists
+        # metadata = self.get_file_metadata(full_file_path)
+        metadata = {}
+
         return MediaItem(
             db_type=db_type,
             media_type=media_group.media_type,
@@ -231,9 +223,20 @@ class MediaManager:
             season=season,
             episode=episode,
             extended=extended,
-            relative_title_filepath=file.name,
-            metadata={}
+            relative_title_filepath=relative_title_filepath,
+            metadata=metadata
         )
+
+    def get_file_metadata(self, full_file_path: Path) -> dict[str, Any]:
+        """Get the file metadata"""
+        metadata = {}
+        if full_file_path.exists():
+            # meta file
+            metadata_file = full_file_path.with_suffix(".meta")
+            if metadata_file.exists():
+                with open(metadata_file, "r") as f:
+                    metadata = json.load(f)
+        return metadata
 
     def populate_extended_info(self, media_item: MediaItem) -> MediaItem:
         """Populate the extended info for the media item"""
@@ -254,7 +257,8 @@ class MediaManager:
                 media_type=media_type,
                 media_prefix=media_prefix,
                 quality_order=config["quality_order"],
-                merge_name=config["merge_name"],
+                merge_prefix=config.get("merge_prefix", media_prefix),
+                merge_quality=config.get("merge_quality", "merged"),
                 use_cache=config["use_cache"]
             )
         return media_matrix_info
@@ -269,3 +273,23 @@ class MediaManager:
             export_library_path=self.export_base_path,
             system_data_path=self.system_data_path
         )
+
+
+    # def get_media_target_path(self, db_type: MediaDbType, media_item: MediaItem) -> Path:
+    #     """Get the target path for the media item based on the media type and quality"""
+    #     media_prefix = media_item.media_prefix
+    #     quality = media_item.quality
+    #     file_name = media_item.full_path.split("/")[-1]
+    #     return self.get_db_path(db_type) / f"{media_prefix}-{quality}" / media_item.title / file_name
+
+    # def get_media_relative_path_from_media_item(self, media_item: MediaItem) -> str:
+    #     """Get the relative path for the media item based on the media type and quality"""
+    #     media_prefix = media_item.media_prefix
+    #     quality = media_item.quality
+    #     file_name = media_item.full_path.split("/")[-1]
+    #     return os.path.join(f"{media_prefix}-{quality}", media_item.title, file_name)
+
+    # def get_media_relative_path(self, media_prefix: str, quality: str, title: str, file_name: str) -> str:
+    #     """Get the relative path for the media item based on the media type and quality"""
+    #     return os.path.join(f"{media_prefix}-{quality}", title, file_name)
+

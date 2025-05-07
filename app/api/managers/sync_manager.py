@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Any
 from app.api.managers.cache_manager import CacheManager
 from app.api.managers.file_transaction_manager import FileTransactionManager
+from app.api.managers.item_manager import ItemManager
 from app.api.managers.media_manager import MediaManager
 from app.api.models.file_transaction_models import FileTransactionList, FileTransactionSettings, ExistingFileAction, FileApplyTransactionSettings, FileTransaction, FileOperationType
 from app.api.models.media_models import MediaDbType, MediaItemGroupDict, MediaItemGroup
@@ -21,6 +22,7 @@ class SyncManager:
         self.file_transaction_manager = FileTransactionManager(config)
         self.cache_processor = CacheProcessor(config)
         self.cache_manager = CacheManager(config)
+        self.item_manager = ItemManager(config)
 
     def sync(self, dry_run: bool = False) -> dict[str, Any]:
         """Sync the cache with the media library
@@ -46,10 +48,16 @@ class SyncManager:
             current_cache = self.media_manager.search_media(SearchRequest(db_type=[MediaDbType.CACHE]))
 
             # Process cache
-            expected_cache = self.cache_processor.get_expected_cache(current_cache, cache_path)
+            expected_cache = self.cache_processor.get_expected_cache(current_cache)
 
-            # Get merged items group dict
+            # Get merged items
             expected_merge_group = self.media_merger.merge_libraries(current_media, expected_cache)
+
+            # Get file transactions for cache
+            expected_cache_file_transactions = self.get_source_file_transactions(expected_cache, FileOperationType.COPY)
+
+            # Get file transactions for merge group
+            expected_merge_file_transactions = self.get_source_file_transactions(expected_merge_group, FileOperationType.LINK)
 
             return expected_cache, expected_merge_group
 
@@ -97,21 +105,40 @@ class SyncManager:
             logger.error(f"Error in sync: {str(e)}", exc_info=True)
             raise e
            
-    def get_cache_file_transactions(self, expected_cache: MediaItemGroup, media_path: str, cache_path: str) -> FileTransactionList:
+    def get_source_file_transactions(self, expected_group: MediaItemGroup, operation_type: FileOperationType) -> FileTransactionList:
         file_transactions = FileTransactionList(transactions=[])
         settings = FileTransactionSettings(existing_file_action=ExistingFileAction.SKIP_IF_SAME_SIZE)
-        for item in expected_cache.items:
-            source_path = str(item.get_full_filepath(media_path))
-            dest_path = str(item.get_full_filepath(cache_path))
+        for item in expected_group.items:
+            if "src_file_path" not in item.metadata:
+                continue
+
+            source_path = item.metadata["src_file_path"]
+            dest_path = self.item_manager.get_full_filepath(item)
+
             file_transactions.transactions.append(FileTransaction(
-                type=FileOperationType.COPY,
+                type=operation_type,
                 source=source_path,
                 destination=dest_path,
                 settings=settings,
                 metadata={}
             ))
         return file_transactions
-    
+
+    def get_file_linked_transactions(self, expected_group: MediaItemGroup, source_db_type: MediaDbType) -> FileTransactionList:
+        file_transactions = FileTransactionList(transactions=[])
+        settings = FileTransactionSettings(existing_file_action=ExistingFileAction.SKIP_IF_SAME_SIZE)
+        for item in expected_group.items:
+            dest_path = item.get_file_path_link(self.media_base_path, item.db_type)
+
+            file_transactions.transactions.append(FileTransaction(
+                type=FileOperationType.LINK,
+                source=source_path,
+                destination=dest_path,
+                settings=settings,
+                metadata={}
+            ))
+        return file_transactions
+
     def get_merge_file_transactions(self, expected_merge_group: MediaItemGroup, media_path: str, cache_path: str) -> FileTransactionList:
         file_transactions = FileTransactionList(transactions=[])
         settings = FileTransactionSettings(existing_file_action=ExistingFileAction.SKIP_IF_SAME_SIZE)

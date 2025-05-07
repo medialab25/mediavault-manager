@@ -37,9 +37,8 @@ class MediaMerger:
             # Initialize result group
             result_item_group = MediaItemGroup(items=[])
     
-            merge_name = media_matrix_info.merge_name
-            if not merge_name:
-                continue
+            merge_prefix = media_matrix_info.merge_prefix
+            merge_quality = media_matrix_info.merge_quality
 
             if not media_matrix_info.quality_order:
                 continue
@@ -78,18 +77,23 @@ class MediaMerger:
             all_merged_items = [item for items in merged_items_dict.values() for item in items]
 
             for item in all_merged_items:
-                current_item = item
+                current_item = item.clone()
+                
+                if use_cache and self.item_manager.is_item_in_list(current_item, current_cache.items):
+                    current_item.db_type = MediaDbType.CACHE
+                    src_path = str(current_item.get_full_filepath(self.media_library_info.cache_library_path))
+                else:
+                    current_item.db_type = MediaDbType.MEDIA
+                    src_path = str(current_item.get_full_filepath(self.media_library_info.media_library_path))
 
-                # Does current item exist in cache, using get_matrix_filepath as comparison key
-                cache_items = self.item_manager.get_matching_items(current_item, current_cache.items)
+                # Update prefix and quality             
+                current_item.metadata["src_media_prefix"] = current_item.media_prefix
+                current_item.metadata["src_quality"] = current_item.quality
+                current_item.metadata["src_file_path"] = src_path
 
-                if cache_items and len(cache_items) > 0:
-                    for cache_item in cache_items:
-                        if use_cache:
-                            current_item = cache_item.clone_with_update(MediaDbType.CACHE)
-                        else:
-                            current_item = item
+                current_item.media_prefix = merge_prefix
+                current_item.quality = merge_quality
 
                 result_items.append(current_item)
-                
+
         return MediaItemGroup(items=result_items)

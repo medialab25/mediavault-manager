@@ -16,15 +16,23 @@ class ItemManager:
     def get_unique_id_list(self, items: list[MediaItem]) -> list[str]:
         return [self.get_unique_id(item) for item in items]
 
-    def get_file_path(self, item: MediaItem) -> str:
-        # Get is_merged from metadata
-        is_merged = item.metadata.get("is_merged", False)
+    def get_file_path_link(self, item: MediaItem, media_db_type: MediaDbType) -> str:
         base_path = (self.media_library_info.media_library_path 
-                    if item.db_type == MediaDbType.MEDIA 
+                    if media_db_type == MediaDbType.MEDIA 
                     else self.media_library_info.cache_library_path)
-        return (self.get_full_title_filepath(base_path) 
-                if is_merged 
-                else self.get_full_filepath(base_path))
+        
+        if item.media_prefix and item.quality:
+            return base_path / f"{item.media_prefix}-{item.quality}" / item.title / item.relative_title_filepath
+        elif item.media_prefix:
+            return base_path / item.media_prefix / item.relative_title_filepath
+        else:
+            return base_path / item.relative_title_filepath
+
+    def get_file_path(self, item: MediaItem) -> str:
+        return self.get_file_path_link(item, item.db_type)
+
+    def get_folder_path(self, item: MediaItem) -> str:
+        return self.get_file_path(item).parent
 
     def merge_unique_items(self, existing_items: list[MediaItem], new_items: list[MediaItem]) -> list[MediaItem]:
         """Merge two lists of MediaItems while ensuring uniqueness based on unique_id.
