@@ -31,7 +31,7 @@ class SyncManager:
         current_cache = self.media_manager.search_media(SearchRequest(db_type=[MediaDbType.CACHE]))
 
         # Process cache
-        expected_cache = self.cache_processor.process_cache(current_media, current_cache)
+        expected_cache = self.cache_processor.get_expected_cache(current_cache)
 
         # Merge items
         expected_merge_groups = self.media_merger.merge_libraries(current_media, expected_cache)

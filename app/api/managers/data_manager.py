@@ -32,9 +32,15 @@ class DataManager(BaseDataPersistence):
                         "db_type": MediaDbType.MEDIA,
                         "media_type": item_data.get("media_type", ""),
                         "media_prefix": item_data.get("media_prefix", ""),
-                        "quality": item_data.get("quality", ""),
-                        "relative_title_filepath": item_data.get("relative_title_filepath", "")
+                        "quality": item_data.get("quality", "")
                     }
+                # Ensure relative_title_filepath is present
+                if "relative_title_filepath" not in item_data:
+                    # If we have a title and source info, construct the relative path
+                    if item_data.get("title") and item_data.get("source", {}).get("media_prefix"):
+                        item_data["relative_title_filepath"] = f"{item_data['title']}/{item_data.get('title', '')}"
+                    else:
+                        continue  # Skip items without required fields
                 items.append(MediaItem(**item_data))
         return items
 
@@ -49,8 +55,14 @@ class DataManager(BaseDataPersistence):
                         "media_type": item_data.get("media_type", ""),
                         "media_prefix": item_data.get("media_prefix", ""),
                         "quality": item_data.get("quality", ""),
-                        "relative_title_filepath": item_data.get("relative_title_filepath", "")
                     }
+                # Ensure relative_title_filepath is present
+                if "relative_title_filepath" not in item_data:
+                    # If we have a title and source info, construct the relative path
+                    if item_data.get("title") and item_data.get("source", {}).get("media_prefix"):
+                        item_data["relative_title_filepath"] = f"{item_data['title']}/{item_data.get('title', '')}"
+                    else:
+                        continue  # Skip items without required fields
                 items.append(MediaItem(**item_data))
         return items
 

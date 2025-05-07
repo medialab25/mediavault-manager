@@ -42,32 +42,38 @@ class MediaGroupFolderList(BaseModel):
 
 class MediaItemTarget(BaseModel):
     db_type: MediaDbType    # = Field(alias="db_type")
-    relative_title_filepath: str   # The filepath relative to the top-level title
     media_prefix: str
     quality: str
+    def clone(self) -> "MediaItemTarget":
+        return MediaItemTarget(
+            db_type=self.db_type,
+            media_prefix=self.media_prefix,
+            quality=self.quality
+        )
 
 class MediaItem(BaseModel):
     source: MediaItemTarget
     destination: Optional[MediaItemTarget] = None
+    relative_title_filepath: str   # The filepath relative to the top-level title
     media_type: str
     title: str
     season: Optional[int] = None
     episode: Optional[int] = None
     extended: Optional[ExtendedMediaInfo] = None
     metadata: Optional[Dict[str, Any]] = None
-    # def clone(self) -> "MediaItem":
-    #     return MediaItem(
-    #         db_type=self.db_type,
-    #         media_type=self.media_type,
-    #         media_prefix=self.media_prefix,
-    #         quality=self.quality,
-    #         title=self.title,
-    #         season=self.season,
-    #         episode=self.episode,
-    #         relative_title_filepath=self.relative_title_filepath,
-    #         extended=self.extended,
-    #         metadata=self.metadata.copy() if self.metadata else {}
-    #     )
+    
+    def clone(self) -> "MediaItem":
+        return MediaItem(
+            source=self.source.clone(),
+            destination=self.destination.clone() if self.destination else None,
+            relative_title_filepath=self.relative_title_filepath,
+            media_type=self.media_type,
+            title=self.title,
+            season=self.season,
+            episode=self.episode,
+            extended=self.extended,
+            metadata=self.metadata.copy() if self.metadata else {}
+        )
     
     # def clone_with_update(self, db_type: MediaDbType) -> "MediaItem":
     #     result = self.clone()

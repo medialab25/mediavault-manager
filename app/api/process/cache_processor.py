@@ -3,7 +3,7 @@ from typing import Any
 from app.api.managers.data_manager import DataManager
 from app.api.managers.item_manager import ItemManager
 from app.api.managers.media_manager import MediaManager
-from app.api.models.media_models import MediaDbType, MediaItemGroup
+from app.api.models.media_models import MediaDbType, MediaItemGroup, MediaItemTarget
 from app.api.models.search_request import SearchRequest
 
 class CacheProcessor:
@@ -32,9 +32,14 @@ class CacheProcessor:
         expected_cache_items = self.item_manager.remove_items_from_list(expected_cache_items, remove_items)
 
         # Add items to expected cache, if they don't already exist
-        add_items = [item.clone_with_update(MediaDbType.CACHE) for item in self.data_manager.get_add_cache_items()]
+        add_items = [item.clone() for item in self.data_manager.get_add_cache_items()]
         for item in add_items:
-            item.metadata["src_file_path"] = str(item.get_full_filepath(self.media_path))
-            expected_cache_items.append(item)
+            item.destination = MediaItemTarget(
+                db_type=MediaDbType.CACHE,
+                media_prefix=item.source.media_prefix,
+                quality=item.source.quality
+            )
+
+        expected_cache_items.extend(add_items)
 
         return MediaItemGroup(items=expected_cache_items)

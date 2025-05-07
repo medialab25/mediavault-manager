@@ -9,7 +9,7 @@ from app.api.managers.item_manager import ItemManager
 from app.api.managers.media_filter import MediaFilter
 from app.api.managers.media_manager import MediaManager
 from app.api.managers.media_query import MediaQuery
-from app.api.models.media_models import MediaDbType, MediaItem, MediaItemGroup, MediaItemGroupDict, MediaItemGroupList
+from app.api.models.media_models import MediaDbType, MediaItem, MediaItemGroup, MediaItemGroupDict, MediaItemGroupList, MediaItemTarget
 from app.api.models.search_request import SearchRequest
 
 class FolderOperationStatus(Enum):
@@ -48,10 +48,6 @@ class MediaMerger:
             prefix = media_matrix_info.media_prefix
             use_cache = media_matrix_info.use_cache
 
-            result_item_group.metadata = {
-                "media_key": media_key
-            }
-
             # Get all from this quality and prefix
             merged_items_dict: Dict[str, List[MediaItem]] = {}
 
@@ -64,7 +60,7 @@ class MediaMerger:
 
                 for item in media_quality_items.items:
                     # get title/relative_path
-                    key_path = f"{item.media_prefix}-{item.title}-{item.get_relative_title_folderpath()}"
+                    key_path = f"{item.source.media_prefix}-{item.title}-{item.get_relative_title_folderpath()}"
                     # create list if key_path not exists
                     if key_path not in merged_quality_index:
                         merged_items_dict[key_path] = [item]
@@ -79,21 +75,18 @@ class MediaMerger:
             for item in all_merged_items:
                 current_item = item.clone()
                 
+                current_item.destination = MediaItemTarget(
+                    db_type=MediaDbType.MEDIA,
+                    media_prefix=merge_prefix,
+                    quality=merge_quality
+                )
+                
                 if use_cache and self.item_manager.is_item_in_list(current_item, current_cache.items):
-                    current_item.source.db_type = MediaDbType.CACHE
-                    src_path = str(current_item.get_full_filepath(self.media_library_info.cache_library_path))
-                else:
-                    current_item.source.db_type = MediaDbType.MEDIA
-                    src_path = str(current_item.get_full_filepath(self.media_library_info.media_library_path))
-
-                # Update prefix and quality             
-                current_item.metadata["src_media_prefix"] = current_item.media_prefix
-                current_item.metadata["src_quality"] = current_item.quality
-                current_item.metadata["src_file_path"] = src_path
-
-                current_item.media_prefix = merge_prefix
-                current_item.quality = merge_quality
+                    current_item.destination.db_type = MediaDbType.CACHE
+                    current_item.destination.media_prefix = merge_prefix
+                    current_item.destination.quality = merge_quality
 
                 result_items.append(current_item)
 
         return MediaItemGroup(items=result_items)
+

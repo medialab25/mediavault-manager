@@ -11,7 +11,7 @@ class ItemManager:
         
     def get_unique_id(self, item: MediaItem) -> str:
         # Unique id is the title relative path
-        return item.source.relative_title_filepath
+        return item.relative_title_filepath
     
     def get_unique_id_list(self, items: list[MediaItem]) -> list[str]:
         return [self.get_unique_id(item) for item in items]

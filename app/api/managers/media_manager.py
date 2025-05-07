@@ -218,14 +218,14 @@ class MediaManager:
             db_type=db_type,
             media_type=media_group.media_type,
             media_prefix=media_group.media_prefix,
-            quality=media_group.quality,
-            relative_title_filepath=relative_title_filepath
+            quality=media_group.quality
         )
 
         return MediaItem(
             source=source,
             destination=None,
             media_type=media_group.media_type,
+            relative_title_filepath=relative_title_filepath,
             title=title,
             season=season,
             episode=episode,
