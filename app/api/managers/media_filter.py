@@ -19,7 +19,7 @@ class MediaFilter:
             return False
         if self.request.episode and self.request.episode != media_item.episode:
             return False
-        if self.request.db_type and media_item.db_type not in self.request.db_type and not any(db_type.value == "all" for db_type in self.request.db_type):
+        if self.request.db_type and media_item.source.db_type not in self.request.db_type and not any(db_type.value == "all" for db_type in self.request.db_type):
             return False
         if self.request.matrix_filepath and self.request.matrix_filepath != media_item.get_matrix_filepath():
             return False

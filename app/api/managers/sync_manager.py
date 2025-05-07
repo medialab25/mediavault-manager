@@ -24,87 +24,52 @@ class SyncManager:
         self.cache_manager = CacheManager(config)
         self.item_manager = ItemManager(config)
 
-    def sync(self, dry_run: bool = False) -> dict[str, Any]:
-        """Sync the cache with the media library
-        
-        Args:
-            dry_run (bool): If True, only show what would be done without making changes
-            
-        Returns:
-            MediaItemGroupDict: The results of the sync operation
-        """
-        try:
-            logger.debug(f"Starting sync{' (dry run)' if dry_run else ''}")
+    def sync(self, dry_run: bool = False) -> FileTransactionList:
+        """Sync the cache with the media library"""
+        # Get current media and cache states
+        current_media = self.media_manager.search_media(SearchRequest(db_type=[MediaDbType.MEDIA]))
+        current_cache = self.media_manager.search_media(SearchRequest(db_type=[MediaDbType.CACHE]))
 
-            media_library_info = self.media_manager.get_media_library_info()
+        # Process cache
+        expected_cache = self.cache_processor.process_cache(current_media, current_cache)
 
-            # Get paths
-            cache_path = media_library_info.cache_library_path
-            media_export_path = media_library_info.export_library_path
-            default_source_path = media_library_info.media_library_path
+        # Merge items
+        expected_merge_groups = self.media_merger.merge_libraries(current_media, expected_cache)
 
-            # Get current state
-            current_media = self.media_manager.search_media(SearchRequest(db_type=[MediaDbType.MEDIA]))
-            current_cache = self.media_manager.search_media(SearchRequest(db_type=[MediaDbType.CACHE]))
+        # Create file transactions
+        file_transactions = []
+        for item in expected_merge_groups.items:
+            # Get source and destination paths
+            src_path = item.get_file_path_link(self.media_base_path, item.source.db_type)
+            dest_path = item.get_file_path_link(self.media_base_path, item.source.db_type)
 
-            # Process cache
-            expected_cache = self.cache_processor.get_expected_cache(current_cache)
+            # Create file transaction
+            file_transaction = FileTransaction(
+                source_path=src_path,
+                destination_path=dest_path,
+                operation_type=FileOperationType.COPY,
+                existing_file_action=ExistingFileAction.SKIP
+            )
+            file_transactions.append(file_transaction)
 
-            # Get merged items
-            expected_merge_group = self.media_merger.merge_libraries(current_media, expected_cache)
+        # Create file transaction list
+        file_transaction_list = FileTransactionList(
+            transactions=file_transactions,
+            settings=FileTransactionSettings(
+                dry_run=dry_run,
+                apply_settings=FileApplyTransactionSettings(
+                    create_directories=True,
+                    preserve_permissions=True
+                )
+            )
+        )
 
-            # Get file transactions for cache
-            expected_cache_file_transactions = self.get_source_file_transactions(expected_cache, FileOperationType.COPY)
+        # Apply transactions if not dry run
+        if not dry_run:
+            self.file_transaction_manager.apply_transactions(file_transaction_list)
 
-            # Get file transactions for merge group
-            expected_merge_file_transactions = self.get_source_file_transactions(expected_merge_group, FileOperationType.LINK)
+        return file_transaction_list
 
-            return expected_cache, expected_merge_group
-
-
-
-
-            expected_cache_file_transactions = self.get_cache_file_transactions(expected_cache, default_source_path, cache_path)
-            export_path_list = []
-            for expected_merge_group in expected_merge_groups:
-                # Implement cache changes
-                # Get file transactions
-                export_path = Path(media_export_path) / expected_merge_group.metadata["merge_name"]
-                export_path_list.append(export_path)
-                expected_merge_file_transactions = self.get_merge_file_transactions(expected_merge_group, default_source_path, export_path)
-
-                # Get files to remove
-            # Flatten all expected_merge_groups into a single list
-            expected_merge_groups_list = []
-            for merge_group in expected_merge_groups:
-                expected_merge_groups_list.extend(merge_group.items)
-
-            files_to_remove = self.get_files_to_remove(export_path_list, expected_merge_file_transactions)
-            cache_files_to_remove = self.get_files_to_remove([cache_path], expected_cache_file_transactions)
-
-            # Combine all transactions into a single list
-            merge_file_transactions = FileTransactionList(transactions=[])
-            merge_file_transactions.transactions.extend(files_to_remove.transactions)
-            merge_file_transactions.transactions.extend(cache_files_to_remove.transactions)
-            merge_file_transactions.transactions.extend(expected_cache_file_transactions.transactions)
-            merge_file_transactions.transactions.extend(expected_merge_file_transactions.transactions)
-
-            file_transaction_summary = self.file_transaction_manager.apply_file_transactions(merge_file_transactions, settings=None, dry_run=dry_run)
-
-            # clear precache
-            if not dry_run:
-                self.cache_manager.clear_pre_cache()
-
-            return {
-                "file_transaction_summary": file_transaction_summary,
-                "expected_cache": expected_cache,
-                "expected_merge_group": expected_merge_group
-            }
-
-        except Exception as e:
-            logger.error(f"Error in sync: {str(e)}", exc_info=True)
-            raise e
-           
     def get_source_file_transactions(self, expected_group: MediaItemGroup, operation_type: FileOperationType) -> FileTransactionList:
         file_transactions = FileTransactionList(transactions=[])
         settings = FileTransactionSettings(existing_file_action=ExistingFileAction.SKIP_IF_SAME_SIZE)

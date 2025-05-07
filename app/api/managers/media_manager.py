@@ -4,7 +4,7 @@ from pathlib import Path
 from app.api.managers.media_filter import MediaFilter
 from app.api.models.media_models import (
     ExtendedMediaInfo, MediaDbType, MediaGroupFolder, MediaGroupFolderList,
-    MediaFileItem, MediaItemFolder, MediaItem, MediaItemGroup, MediaLibraryInfo, MediaMatrixInfo
+    MediaFileItem, MediaItemFolder, MediaItem, MediaItemGroup, MediaItemTarget, MediaLibraryInfo, MediaMatrixInfo
 )
 from app.api.models.search_request import SearchCacheExportFilter, SearchRequest
 from app.core.config import Config
@@ -214,16 +214,22 @@ class MediaManager:
         # metadata = self.get_file_metadata(full_file_path)
         metadata = {}
 
-        return MediaItem(
+        source = MediaItemTarget(
             db_type=db_type,
             media_type=media_group.media_type,
             media_prefix=media_group.media_prefix,
             quality=media_group.quality,
+            relative_title_filepath=relative_title_filepath
+        )
+
+        return MediaItem(
+            source=source,
+            destination=None,
+            media_type=media_group.media_type,
             title=title,
             season=season,
             episode=episode,
             extended=extended,
-            relative_title_filepath=relative_title_filepath,
             metadata=metadata
         )
 

@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from app.api.models.media_models import MediaItem
+from app.api.models.media_models import MediaItem, MediaDbType
 from .base_data_persistence import BaseDataPersistence
 from .item_manager import ItemManager
 
@@ -23,10 +23,36 @@ class DataManager(BaseDataPersistence):
         self.set_data("add_cache_items", [item.model_dump() for item in merged_list])
 
     def get_add_cache_items(self) -> list[MediaItem]:
-        return [MediaItem(**item) for item in (self.get_data("add_cache_items") or []) if item is not None]
+        items = []
+        for item_data in (self.get_data("add_cache_items") or []):
+            if item_data is not None:
+                # Ensure source field is present
+                if "source" not in item_data:
+                    item_data["source"] = {
+                        "db_type": MediaDbType.MEDIA,
+                        "media_type": item_data.get("media_type", ""),
+                        "media_prefix": item_data.get("media_prefix", ""),
+                        "quality": item_data.get("quality", ""),
+                        "relative_title_filepath": item_data.get("relative_title_filepath", "")
+                    }
+                items.append(MediaItem(**item_data))
+        return items
 
     def get_remove_cache_items(self) -> list[MediaItem]:
-        return [MediaItem(**item) for item in (self.get_data("remove_cache_items") or []) if item is not None]
+        items = []
+        for item_data in (self.get_data("remove_cache_items") or []):
+            if item_data is not None:
+                # Ensure source field is present
+                if "source" not in item_data:
+                    item_data["source"] = {
+                        "db_type": MediaDbType.CACHE,
+                        "media_type": item_data.get("media_type", ""),
+                        "media_prefix": item_data.get("media_prefix", ""),
+                        "quality": item_data.get("quality", ""),
+                        "relative_title_filepath": item_data.get("relative_title_filepath", "")
+                    }
+                items.append(MediaItem(**item_data))
+        return items
 
     def append_remove_cache_items(self, items: list[MediaItem]):
         # Get existing items

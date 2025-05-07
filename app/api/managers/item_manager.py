@@ -11,7 +11,7 @@ class ItemManager:
         
     def get_unique_id(self, item: MediaItem) -> str:
         # Unique id is the title relative path
-        return item.relative_title_filepath
+        return item.source.relative_title_filepath
     
     def get_unique_id_list(self, items: list[MediaItem]) -> list[str]:
         return [self.get_unique_id(item) for item in items]
@@ -21,15 +21,15 @@ class ItemManager:
                     if media_db_type == MediaDbType.MEDIA 
                     else self.media_library_info.cache_library_path)
         
-        if item.media_prefix and item.quality:
-            return base_path / f"{item.media_prefix}-{item.quality}" / item.title / item.relative_title_filepath
-        elif item.media_prefix:
-            return base_path / item.media_prefix / item.relative_title_filepath
+        if item.source.media_prefix and item.source.quality:
+            return base_path / f"{item.source.media_prefix}-{item.source.quality}" / item.title / item.source.relative_title_filepath
+        elif item.source.media_prefix:
+            return base_path / item.source.media_prefix / item.source.relative_title_filepath
         else:
-            return base_path / item.relative_title_filepath
+            return base_path / item.source.relative_title_filepath
 
     def get_file_path(self, item: MediaItem) -> str:
-        return self.get_file_path_link(item, item.db_type)
+        return self.get_file_path_link(item, item.source.db_type)
 
     def get_folder_path(self, item: MediaItem) -> str:
         return self.get_file_path(item).parent

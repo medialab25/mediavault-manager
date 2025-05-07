@@ -40,79 +40,78 @@ class MediaGroupFolder(BaseModel):
 class MediaGroupFolderList(BaseModel):
     groups: List[MediaGroupFolder]
 
-class MediaItem(BaseModel):
+class MediaItemTarget(BaseModel):
     db_type: MediaDbType    # = Field(alias="db_type")
     relative_title_filepath: str   # The filepath relative to the top-level title
-    media_type: str
     media_prefix: str
     quality: str
+
+class MediaItem(BaseModel):
+    source: MediaItemTarget
+    destination: Optional[MediaItemTarget] = None
+    media_type: str
     title: str
     season: Optional[int] = None
     episode: Optional[int] = None
     extended: Optional[ExtendedMediaInfo] = None
     metadata: Optional[Dict[str, Any]] = None
-
-    def clone(self) -> "MediaItem":
-        return MediaItem(
-            db_type=self.db_type,
-            media_type=self.media_type,
-            media_prefix=self.media_prefix,
-            quality=self.quality,
-            title=self.title,
-            season=self.season,
-            episode=self.episode,
-            relative_title_filepath=self.relative_title_filepath,
-            extended=self.extended,
-            metadata=self.metadata.copy() if self.metadata else {}
-        )
+    # def clone(self) -> "MediaItem":
+    #     return MediaItem(
+    #         db_type=self.db_type,
+    #         media_type=self.media_type,
+    #         media_prefix=self.media_prefix,
+    #         quality=self.quality,
+    #         title=self.title,
+    #         season=self.season,
+    #         episode=self.episode,
+    #         relative_title_filepath=self.relative_title_filepath,
+    #         extended=self.extended,
+    #         metadata=self.metadata.copy() if self.metadata else {}
+    #     )
     
-    def clone_with_update(self, db_type: MediaDbType) -> "MediaItem":
-        result = self.clone()
-        result.db_type = db_type
-        return result
+    # def clone_with_update(self, db_type: MediaDbType) -> "MediaItem":
+    #     result = self.clone()
+    #     result.db_type = db_type
+    #     return result
     
-    def get_path(self, media_path: str, cache_path: str, is_merged: bool=False) -> str:
-        if self.db_type == MediaDbType.MEDIA:
-            if is_merged:
-                return self.get_full_title_filepath(media_path)
-            else:
-                return self.get_full_filepath(media_path)
-        elif self.db_type == MediaDbType.CACHE:
-            if is_merged:
-                return self.get_full_title_filepath(cache_path)
-            else:
-                return self.get_full_filepath(cache_path)
+    # def get_path(self, media_path: str, cache_path: str, is_merged: bool=False) -> str:
+    #     if self.db_type == MediaDbType.MEDIA:
+    #         if is_merged:
+    #             return self.get_full_title_filepath(media_path)
+    #         else:
+    #             return self.get_full_filepath(media_path)
+    #     elif self.db_type == MediaDbType.CACHE:
+    #         if is_merged:
+    #             return self.get_full_title_filepath(cache_path)
+    #         else:
+    #             return self.get_full_filepath(cache_path)
 
-    def get_full_filepath(self, base_path: str) -> str:
-        return Path(base_path) / f"{self.media_prefix}-{self.quality}/{self.title}/{self.relative_title_filepath}"
+    # def get_full_filepath(self, base_path: str) -> str:
+    #     return Path(base_path) / f"{self.media_prefix}-{self.quality}/{self.title}/{self.relative_title_filepath}"
 
-    def equals(self, other: "MediaItem") -> bool:
-        return self.get_relative_matrix_filepath() == other.get_relative_matrix_filepath()
+    # def equals(self, other: "MediaItem") -> bool:
+    #     return self.get_relative_matrix_filepath() == other.get_relative_matrix_filepath()
 
-    def exists_in(self, other: "MediaItemGroup") -> bool:
-        return any(item.equals(self) for item in other.items)
+    # def exists_in(self, other: "MediaItemGroup") -> bool:
+    #     return any(item.equals(self) for item in other.items)
     
     
-    def get_full_matrix_filepath(self, base_path: str) -> str:
-        return Path(base_path) / self.get_relative_matrix_filepath()
+    # def get_full_matrix_filepath(self, base_path: str) -> str:
+    #     return Path(base_path) / self.get_relative_matrix_filepath()
 
-    def get_full_title_filepath(self, base_path: str) -> str:
-        return Path(base_path) / self.title / self.relative_title_filepath
+    # def get_full_title_filepath(self, base_path: str) -> str:
+    #     return Path(base_path) / self.title / self.relative_title_filepath
 
-    def get_relative_matrix_filepath(self) -> str:
-        return f"{self.media_prefix}-{self.quality}/{self.relative_title_filepath}"
+    # def get_relative_matrix_filepath(self) -> str:
+    #     return f"{self.media_prefix}-{self.quality}/{self.relative_title_filepath}"
 
-    def get_relative_title_folderpath(self) -> str:
-        return str(Path(self.relative_title_filepath).parent)
-    
+    # def get_relative_title_folderpath(self) -> str:
+    #     return str(Path(self.relative_title_filepath).parent)
 
 class MediaItemGroup(BaseModel):
     items: List[MediaItem]
     metadata: Optional[Dict[str, Any]] = None
    
-    def clone(self) -> "MediaItemGroup":
-        return MediaItemGroup(items=[item.clone() for item in self.items])
-
     def title_file_path_exists(self, title_file_path: str) -> bool:
         return any(item.relative_title_filepath == title_file_path for item in self.items)
 
@@ -122,9 +121,11 @@ class MediaItemGroup(BaseModel):
 
 class MediaItemGroupList(BaseModel):
     groups: List[MediaItemGroup]
+    metadata: Optional[Dict[str, Any]] = None
 
 class MediaItemGroupDict(BaseModel):
     groups: Dict[str, MediaItemGroup]
+    metadata: Optional[Dict[str, Any]] = None
 
 class MediaMatrixInfo(BaseModel):
     media_type: str 

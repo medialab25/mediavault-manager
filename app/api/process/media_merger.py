@@ -80,10 +80,10 @@ class MediaMerger:
                 current_item = item.clone()
                 
                 if use_cache and self.item_manager.is_item_in_list(current_item, current_cache.items):
-                    current_item.db_type = MediaDbType.CACHE
+                    current_item.source.db_type = MediaDbType.CACHE
                     src_path = str(current_item.get_full_filepath(self.media_library_info.cache_library_path))
                 else:
-                    current_item.db_type = MediaDbType.MEDIA
+                    current_item.source.db_type = MediaDbType.MEDIA
                     src_path = str(current_item.get_full_filepath(self.media_library_info.media_library_path))
 
                 # Update prefix and quality             
