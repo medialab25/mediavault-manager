@@ -94,7 +94,8 @@ def search(
     add_extended_info: bool = typer.Option(False, "--extended-info", "-e", help="Add extended info"),
     season: Optional[int] = typer.Option(None, "--season", "-s", help="Season number"),
     episode: Optional[int] = typer.Option(None, "--episode", "-e", help="Episode number"),
-    db_type: Optional[str] = typer.Option("media", "--db-type", "-d", help="Database types (comma-separated: media,cache,shadow)"),
+    db_type: Optional[str] = typer.Option("media", "--db-type", "-d", help="Database types (comma-separated: media,cache)"),
+    all_items: bool = typer.Option(False, "--all-items", "-a", help="Show all items"),
     matrix_filepath: Optional[str] = typer.Option(None, "--matrix-filepath", "-f", help="Matrix filepath"),
     relative_filepath: Optional[str] = typer.Option(None, "--relative-filepath", "-r", help="Relative filepath"),
     cache_export_filter: Optional[str] = typer.Option(None, "--cache-export-filter", "-c", help="Cache export filter (comma-separated: all,cache_export,not_cache_export)")
@@ -102,7 +103,7 @@ def search(
     """Search for media using the search request endpoint"""
     try:
         # If no query or id provided, show help and exit
-        if not query:
+        if not query and not all_items:
             console.print("[yellow]No search query provided.[/yellow]")
             console.print(ctx.get_help())
             return
