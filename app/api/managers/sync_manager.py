@@ -24,12 +24,12 @@ class SyncManager:
         self.cache_manager = CacheManager(config)
         self.item_manager = ItemManager(config)
 
-    def sync(self, dry_run: bool = False) -> dict[str, Any]:
+    def sync(self, dry_run: bool = False, details: bool = False) -> dict[str, Any]:
         """Sync the cache with the media library
         
         Args:
             dry_run (bool): If True, only show what would be done without making changes
-            
+            details (bool): If True, show details of the sync operation
         Returns:
             MediaItemGroupDict: The results of the sync operation
         """
@@ -65,11 +65,16 @@ class SyncManager:
             if not dry_run:
                 self.cache_manager.clear_pre_cache()
 
-            return {
-                "file_transaction_summary": file_transaction_summary,
-                "expected_cache_group": expected_cache_group,
-                "expected_merge_group": expected_merge_group
-            }
+            if details:
+                return {
+                    "file_transaction_summary": file_transaction_summary,
+                    "expected_cache_group": expected_cache_group,
+                    "expected_merge_group": expected_merge_group
+                }
+            else:
+                return {
+                    "file_transaction_summary": file_transaction_summary,
+                }
 
         except Exception as e:
             logger.error(f"Error in sync: {str(e)}", exc_info=True)
