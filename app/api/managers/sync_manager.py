@@ -4,6 +4,7 @@ from app.api.managers.cache_manager import CacheManager
 from app.api.managers.file_transaction_manager import FileTransactionManager
 from app.api.managers.item_manager import ItemManager
 from app.api.managers.media_manager import MediaManager
+from app.api.managers.media_query import MediaQuery
 from app.api.models.file_transaction_models import FileTransactionList, FileTransactionSettings, ExistingFileAction, FileApplyTransactionSettings, FileTransaction, FileOperationType
 from app.api.models.media_models import MediaDbType, MediaItemGroupDict, MediaItemGroup
 from app.api.models.search_request import SearchRequest
@@ -44,20 +45,24 @@ class SyncManager:
             default_source_path = media_library_info.media_library_path
 
             # Get current state
-            current_media = self.media_manager.search_media(SearchRequest(db_type=[MediaDbType.MEDIA]))
-            current_cache = self.media_manager.search_media(SearchRequest(db_type=[MediaDbType.CACHE]))
+            
+            actual_media_model = self.media_manager.search_media(SearchRequest(db_type=[MediaDbType.MEDIA, MediaDbType.CACHE]))
+            query = MediaQuery(actual_media_model)
+
+            actual_media_group = query.get_items(SearchRequest(db_type=[MediaDbType.MEDIA]))
+            actual_cache_group = query.get_items(SearchRequest(db_type=[MediaDbType.CACHE]))
 
             # Process cache
-            expected_cache = self.cache_processor.get_expected_cache(current_cache)
+            expected_cache_group = self.cache_processor.get_expected_cache(actual_cache_group)
 
             # Get merged items
-            expected_merge_group = self.media_merger.merge_libraries(current_media, expected_cache)
+            #expected_merge_group = self.media_merger.merge_libraries(current_media, expected_cache)
 
             # Get file transactions for cache
-            expected_cache_file_transactions = self.get_source_file_transactions(expected_cache, FileOperationType.COPY)
+            #expected_cache_file_transactions = self.get_source_file_transactions(expected_cache, FileOperationType.COPY)
 
             # Get file transactions for merge group
-            expected_merge_file_transactions = self.get_source_file_transactions(expected_merge_group, FileOperationType.LINK)
+            #expected_merge_file_transactions = self.get_source_file_transactions(expected_merge_group, FileOperationType.LINK)
 
             return expected_cache, expected_merge_group
 

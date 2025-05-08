@@ -1,7 +1,12 @@
-from typing import Any
+from enum import Enum
+from typing import Any, Callable
 from app.api.managers.media_manager import MediaManager
 from app.api.models.media_models import MediaDbType, MediaItem
 
+class ItemMatchKey(Enum):
+    RELATIVE_TITLE_FILEPATH = "relative_title_filepath"
+    FULL_PATH = "full_path"
+    TITLE_PATH = "title_path"
 
 class ItemManager:
     def __init__(self, config: dict[str, Any]):
@@ -9,13 +14,36 @@ class ItemManager:
         self.media_manager = MediaManager(config)
         self.media_library_info = self.media_manager.get_media_library_info()
         
-    def get_unique_id(self, item: MediaItem) -> str:
-        # Unique id is the title relative path
-        return item.relative_title_filepath
-    
-    def get_unique_id_list(self, items: list[MediaItem]) -> list[str]:
-        return [self.get_unique_id(item) for item in items]
+    def get_match_key_function(self, match_key: ItemMatchKey) -> Callable[[MediaItem], str]:
+        if match_key == ItemMatchKey.FULL_PATH:
+            return self.get_full_file_path
+        elif match_key == ItemMatchKey.TITLE_PATH:
+            return self.get_title_file_path
+        elif match_key == ItemMatchKey.RELATIVE_TITLE_FILEPATH:
+            return self.get_relative_title_file_path
 
+    def get_unique_id(self, item: MediaItem, match_key: ItemMatchKey=ItemMatchKey.FULL_PATH) -> str:
+        # Unique id is the title relative path
+        return self.get_unique_id_by_function(item, self.get_match_key_function(match_key))
+    
+    def get_unique_id_by_function(self, item: MediaItem, function: Callable[[MediaItem], str]) -> str:
+        return function(item)
+
+    def get_unique_id_list(self, items: list[MediaItem], match_key: ItemMatchKey=ItemMatchKey.FULL_PATH) -> list[str]:
+        func = self.get_match_key_function(match_key)
+        return [self.get_unique_id_by_function(item, func) for item in items]
+
+    # Matching functions
+    def get_full_file_path(self, item: MediaItem) -> str:
+        return item.full_file_path
+
+    def get_title_file_path(self, item: MediaItem) -> str:
+        return item.title / item.relative_title_filepath
+
+    def get_relative_title_file_path(self, item: MediaItem) -> str:
+        return item.relative_title_filepath
+
+#####
     def get_file_path_link(self, item: MediaItem, media_db_type: MediaDbType) -> str:
         base_path = (self.media_library_info.media_library_path 
                     if media_db_type == MediaDbType.MEDIA 
