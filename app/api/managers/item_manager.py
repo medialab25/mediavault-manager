@@ -60,7 +60,7 @@ class ItemManager:
         return item.full_file_path
 
     def get_title_file_path(self, item: MediaItem) -> str:
-        return item.title / item.relative_title_filepath
+        return str(Path(item.title) / item.relative_title_filepath)
 
     def get_relative_title_file_path(self, item: MediaItem) -> str:
         return item.relative_title_filepath
@@ -71,7 +71,10 @@ class ItemManager:
                 if item.db_type == MediaDbType.MEDIA 
                 else self.media_library_info.cache_library_path
                 if item.db_type == MediaDbType.CACHE
-                else self.media_library_info.export_library_path)
+                else self.media_library_info.export_library_path
+                if item.db_type == MediaDbType.EXPORT
+                else self.media_library_info.cache_export_library_path) 
+    
 
     def create_full_file_path(self, item: MediaItem) -> str:
         base_path = self.get_base_path(item)

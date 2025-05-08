@@ -81,10 +81,10 @@ class MediaMerger:
             for item in all_merged_items:
                 current_item = self.item_manager.get_matching_item(item, current_cache.items, ItemMatchKey.TITLE_PATH)
                 if current_item:
-                    target_db_type = MediaDbType.CACHE
+                    target_db_type = MediaDbType.CACHE_EXPORT
                 else:
                     current_item = item
-                    target_db_type = MediaDbType.MEDIA
+                    target_db_type = MediaDbType.EXPORT
                 # Find in the current cache group
 
                 new_item = self.item_manager.copy_update_item(current_item, target_db_type, media_prefix=merge_prefix, quality=merge_quality)

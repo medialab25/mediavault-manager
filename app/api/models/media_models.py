@@ -8,6 +8,7 @@ class MediaDbType(str,Enum):
     MEDIA = "media"
     CACHE = "cache"
     EXPORT = "export"
+    CACHE_EXPORT = "cache_export"
 
 class ExtendedMediaInfo(BaseModel):
     size: int
@@ -150,4 +151,5 @@ class MediaLibraryInfo(BaseModel):
     media_library_path: str
     cache_library_path: str
     export_library_path: str
+    cache_export_library_path: str
     system_data_path: str

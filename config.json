@@ -31,6 +31,7 @@
         },
         "cache_path": "/srv/disks/media-ssd/media",
         "media_export_path": "/srv/storage/media/export",
+        "cache_export_path": "/srv/disks/media-ssd/media/export",
         "system_data_path": "/srv/storage/media/system-data"
     }
 }  

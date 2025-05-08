@@ -31,5 +31,6 @@ class MatrixManager:
             media_library_path=self.config.get("default_source_path"),
             cache_library_path=self.config.get("cache_path"),
             export_library_path=self.config.get("media_export_path"),
+            cache_export_library_path=self.config.get("cache_export_path"),
             system_data_path=self.config.get("system_data_path")
         )

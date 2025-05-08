@@ -75,11 +75,23 @@ class FileTransactionManager:
         
         Args:
             file_path (str): Path to the file whose parent directories should be checked
+            
+        Raises:
+            OSError: If there are issues with directory operations
+            PermissionError: If there are permission issues accessing directories
         """
-        parent_dir = os.path.dirname(file_path)
-        while parent_dir and os.path.exists(parent_dir) and self._is_dir_empty(parent_dir):
-            os.rmdir(parent_dir)
-            parent_dir = os.path.dirname(parent_dir)
+        try:
+            parent_dir = os.path.dirname(file_path)
+            while parent_dir and os.path.exists(parent_dir) and self._is_dir_empty(parent_dir):
+                try:
+                    os.rmdir(parent_dir)
+                except (OSError, PermissionError) as e:
+                    logging.warning(f"Failed to remove empty directory {parent_dir}: {str(e)}")
+                    break  # Stop trying to remove parent directories if we encounter an error
+                parent_dir = os.path.dirname(parent_dir)
+        except Exception as e:
+            logging.error(f"Error while removing empty parent directories for {file_path}: {str(e)}")
+            raise
 
     def apply_file_transactions(self, file_transactions: FileTransactionList, settings: FileApplyTransactionSettings = None, dry_run: bool = False) -> FileTransactionSummary:
         """Apply the file transactions to the file system
@@ -151,7 +163,7 @@ class FileTransactionManager:
                             if os.path.exists(meta_path):
                                 os.remove(meta_path)
                             # Remove empty parent directories
-                            self._remove_empty_parent_dirs(transaction.source)
+                            #self._remove_empty_parent_dirs(transaction.source)
                         summary.deleted_transactions.append(transaction)
                 elif transaction.type == FileOperationType.LINK:
                     if os.path.exists(transaction.destination):

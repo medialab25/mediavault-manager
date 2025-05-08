@@ -91,26 +91,26 @@ class MediaManager:
                     ))
 
         # Add export group folder
-        export_group_folder = Path(self.export_base_path) if self.export_base_path else None
-        if export_group_folder and export_group_folder.exists():
-            # For each folder in the export group folder
-            for folder in export_group_folder.glob("*"):
-                if folder.is_dir():
-                    # Check the source_matrix for merge_prefix and merge_quality
-                    for media_key, config in source_matrix.items():
-                        merge_prefix = config.get('merge_prefix')
-                        merge_quality = config.get('merge_quality')
-                        if merge_prefix and merge_quality:
-                            merge_name = f"{merge_prefix}-{merge_quality}"
-                            if folder.name == merge_name:
-                                media_groups.append(MediaGroupFolder(
-                                    media_type=config.get("media_type"),
-                                    media_prefix=merge_prefix,
-                                    quality=merge_quality,
-                                    path=str(folder),
-                                    media_folder_items=[],
-                                    cache_export=config.get("cache_export", False)
-                                ))
+        # export_group_folder = Path(self.export_base_path) if self.export_base_path else None
+        # if export_group_folder and export_group_folder.exists():
+        #     # For each folder in the export group folder
+        #     for folder in export_group_folder.glob("*"):
+        #         if folder.is_dir():
+        #             # Check the source_matrix for merge_prefix and merge_quality
+        #             for media_key, config in source_matrix.items():
+        #                 merge_prefix = config.get('merge_prefix')
+        #                 merge_quality = config.get('merge_quality')
+        #                 if merge_prefix and merge_quality:
+        #                     merge_name = f"{merge_prefix}-{merge_quality}"
+        #                     if folder.name == merge_name:
+        #                         media_groups.append(MediaGroupFolder(
+        #                             media_type=config.get("media_type"),
+        #                             media_prefix=merge_prefix,
+        #                             quality=merge_quality,
+        #                             path=str(folder),
+        #                             media_folder_items=[],
+        #                             cache_export=config.get("cache_export", False)
+        #                         ))
 
         # De-duplicate media_groups based on prefix and quality properties
         unique_media_groups = {}

@@ -3,7 +3,7 @@ from typing import Any
 from app.api.managers.cache_manager import CacheManager
 from app.api.managers.data_manager import DataManager
 from app.api.managers.file_transaction_manager import FileTransactionManager
-from app.api.managers.item_manager import ItemManager
+from app.api.managers.item_manager import ItemManager, ItemMatchKey
 from app.api.managers.matrix_manager import MatrixManager
 from app.api.managers.media_manager import MediaManager
 from app.api.managers.media_query import MediaQuery
@@ -78,8 +78,7 @@ class SyncManager:
             file_transaction_summary = self.file_transaction_manager.apply_file_transactions(file_transactions, settings=None, dry_run=dry_run)
 
             # Delete empty folders
-            #self._delete_empty_folders(self.media_library_info.cache_library_path, dry_run=dry_run)
-            #self._delete_empty_folders(self.media_library_info.export_library_path, dry_run=dry_run)
+            self._delete_empty_folders([self.media_library_info.cache_library_path, self.media_library_info.export_library_path], dry_run=dry_run)
 
             # clear precache
             if not dry_run:
@@ -116,7 +115,7 @@ class SyncManager:
                 continue
 
             # Find matching media item
-            matching_media_item = self.item_manager.get_matching_item(item, media_group.items)
+            matching_media_item = self.item_manager.get_matching_item(item, media_group.items, ItemMatchKey.TITLE_PATH)
             if not matching_media_item:
                 continue
 
@@ -128,11 +127,23 @@ class SyncManager:
         self._add_file_transactions(file_transactions, expected_group, operation_type)
         return file_transactions
 
-    def _delete_empty_folders(self, base_path: str, dry_run: bool = False) -> None:
-        for folder in Path(base_path).glob("**/*"):
-            if folder.is_dir() and not folder.iterdir():
-                if not dry_run:
-                    folder.rmdir()
+    def _recurse_delete_empty_folders(self, folder: Path, dry_run: bool = False) -> None:
+        for child in folder.iterdir():
+            if child.is_dir():
+                self._recurse_delete_empty_folders(child, dry_run)
+        
+        if folder.is_dir() and not any(folder.iterdir()):
+            if not dry_run:
+                folder.rmdir()
+
+    def _delete_empty_folders(self, base_paths: list[str], dry_run: bool = False) -> None:
+        for base_path in base_paths:
+            # Get list of folders in base_path, only top level
+            folders = [f for f in Path(base_path).iterdir() if f.is_dir()]
+            for folder in folders:
+                child_folders = [f for f in folder.iterdir() if f.is_dir()]
+                for child_folder in child_folders:
+                    self._recurse_delete_empty_folders(child_folder, dry_run)
 
     def _add_file_delete_transactions(self, file_transactions: FileTransactionList, group_list: list[MediaItemGroup], base_paths: list[str]) -> None:
         # Get list of all allowed files from the group list
@@ -151,18 +162,20 @@ class SyncManager:
         files_to_delete = [file for file in files if file not in allowed_files]
 
         for file in files_to_delete:
-            file_transactions.add(
-                source=str(file),
-                destination=str(file),
-                type=FileOperationType.DELETE,
-                settings=FileTransactionSettings.get_default_settings(),
-                metadata={})
-
+            file_transactions.delete(
+                path=str(file),
+                settings=FileTransactionSettings(existing_file_action=ExistingFileAction.SKIP_IF_SAME_SIZE),
+                metadata={}
+            )
 
     def _add_file_transactions(self, file_transactions: FileTransactionList, expected_group: MediaItemGroup, operation_type: FileOperationType) -> None:
         for item in expected_group.items:
             if not item.source_item:
-                file_transactions.delete(path=str(item.full_file_path))
+                file_transactions.delete(
+                    path=str(item.full_file_path),
+                    settings=FileTransactionSettings(existing_file_action=ExistingFileAction.SKIP_IF_SAME_SIZE),
+                    metadata={}
+                )
                 continue
 
             file_transactions.add(
