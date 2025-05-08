@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Any
 from app.api.managers.cache_manager import CacheManager
+from app.api.managers.data_manager import DataManager
 from app.api.managers.file_transaction_manager import FileTransactionManager
 from app.api.managers.item_manager import ItemManager
 from app.api.managers.media_manager import MediaManager
@@ -23,8 +24,9 @@ class SyncManager:
         self.cache_processor = CacheProcessor(config)
         self.cache_manager = CacheManager(config)
         self.item_manager = ItemManager(config)
+        self.data_manager = DataManager(config)
 
-    def sync(self, dry_run: bool = False, details: bool = False) -> dict[str, Any]:
+    def sync(self, dry_run: bool = False, details: bool = False, force: bool = False) -> dict[str, Any]:
         """Sync the cache with the media library
         
         Args:
@@ -34,6 +36,13 @@ class SyncManager:
             MediaItemGroupDict: The results of the sync operation
         """
         try:
+            # Only sync if the media_library_update_request_count is greater than 0 or a force flag is passed
+            if self.data_manager.get_media_library_update_request() == 0 and not force:
+                logger.debug("No media library update request count, skipping sync")
+                return {
+                    "message": "No media library update request count, skipping sync"
+                }
+            
             logger.debug(f"Starting sync{' (dry run)' if dry_run else ''}")
 
             # Get current state
@@ -64,6 +73,10 @@ class SyncManager:
             # clear precache
             if not dry_run:
                 self.cache_manager.clear_pre_cache()
+
+                # clear media library update request count
+                self.data_manager.clear_media_library_update_request()
+                self.data_manager.update()
 
             if details:
                 return {

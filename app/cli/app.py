@@ -298,6 +298,7 @@ def clear_pre_cache():
 def sync(
     dry_run: bool = typer.Option(False, "--dry-run", "-n", help="Show what would be synced without making changes"),
     details: bool = typer.Option(False, "--details", "-d", help="Show details of the sync operation"),
+    force: bool = typer.Option(False, "--force", "-f", help="Force sync even if the media library update request count is 0"),
 ):
     """Sync the cache with the media library"""
     if dry_run:
@@ -305,7 +306,7 @@ def sync(
     else:
         console.print("[yellow]Syncing cache with media library...[/yellow]")
     
-    result = asyncio.run(make_request("POST", "api/sync/", data={"dry_run": dry_run, "details": details}))
+    result = asyncio.run(make_request("POST", "api/sync/", data={"dry_run": dry_run, "details": details, "force": force}))
     
     # Display the data if it exists
     if result.get('data'):

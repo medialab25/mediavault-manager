@@ -16,8 +16,9 @@ async def sync_cache(data: Dict = Body(...)):
     try:
         dry_run = data.get("dry_run", False)    
         details = data.get("details", False)
+        force = data.get("force", False)
         logger.debug(f"Syncing cache with media library{' (dry run)' if dry_run else ''}")
-        result = sync_manager.sync(dry_run=dry_run, details=details)
+        result = sync_manager.sync(dry_run=dry_run, details=details, force=force)
         return APIResponse.success(
             data=result,
             message="Cache would be synced successfully" if dry_run else "Cache synced successfully"
