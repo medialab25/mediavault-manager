@@ -1,5 +1,6 @@
 import json
 import os
+import fcntl
 from typing import Any, Dict
 
 from app.api.models.media_models import MediaItem, MediaItemGroup
@@ -21,7 +22,13 @@ class BaseDataPersistence:
         if os.path.exists(self.data_file):
             try:
                 with open(self.data_file, 'r') as f:
-                    return json.load(f)
+                    # Get a shared lock for reading
+                    fcntl.flock(f.fileno(), fcntl.LOCK_SH)
+                    try:
+                        return json.load(f)
+                    finally:
+                        # Release the lock
+                        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
             except json.JSONDecodeError:
                 return {}
         return {}
@@ -29,7 +36,13 @@ class BaseDataPersistence:
     def _save_data(self):
         try:
             with open(self.data_file, 'w') as f:
-                json.dump(self.data, f, indent=4)
+                # Get an exclusive lock for writing
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+                try:
+                    json.dump(self.data, f, indent=4)
+                finally:
+                    # Release the lock
+                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
         except Exception as e:
             raise e
 
