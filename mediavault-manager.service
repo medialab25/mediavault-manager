@@ -1,0 +1,19 @@
+[Unit]
+Description=MediaVault Manager Service
+After=network.target
+
+[Service]
+Type=simple
+User=YOUR_USERNAME
+Group=YOUR_GROUP
+WorkingDirectory=/path/to/mediavault-manager
+ExecStart=/path/to/mediavault-manager/run_service.sh
+Restart=always
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=mediavault-manager
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target 
