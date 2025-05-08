@@ -5,7 +5,7 @@ from enum import Enum
 from dataclasses import dataclass
 from typing import Any, List, Dict
 
-from app.api.managers.item_manager import ItemManager
+from app.api.managers.item_manager import ItemManager, ItemMatchKey
 from app.api.managers.media_filter import MediaFilter
 from app.api.managers.media_manager import MediaManager
 from app.api.managers.media_query import MediaQuery
@@ -77,23 +77,8 @@ class MediaMerger:
             all_merged_items = [item for items in merged_items_dict.values() for item in items]
 
             for item in all_merged_items:
-                current_item = item.clone()
-                
-                if use_cache and self.item_manager.is_item_in_list(current_item, current_cache.items):
-                    current_item.db_type = MediaDbType.CACHE
-                    src_path = str(current_item.get_full_filepath(self.media_library_info.cache_library_path))
-                else:
-                    current_item.db_type = MediaDbType.MEDIA
-                    src_path = str(current_item.get_full_filepath(self.media_library_info.media_library_path))
-
-                # Update prefix and quality             
-                current_item.metadata["src_media_prefix"] = current_item.media_prefix
-                current_item.metadata["src_quality"] = current_item.quality
-                current_item.metadata["src_file_path"] = src_path
-
-                current_item.media_prefix = merge_prefix
-                current_item.quality = merge_quality
-
-                result_items.append(current_item)
+                target_db_type = MediaDbType.CACHE if use_cache else MediaDbType.MEDIA
+                new_item = self.item_manager.copy_update_item(item, target_db_type, media_prefix=merge_prefix, quality=merge_quality)
+                result_items.append(new_item)
 
         return MediaItemGroup(items=result_items)

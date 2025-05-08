@@ -34,20 +34,26 @@ class ItemManager:
         func = self.get_match_key_function(match_key)
         return [self.get_unique_id_by_function(item, func) for item in items]
 
-    def copy_update_item(self, item: MediaItem, db_type: Optional[MediaDbType]=None) -> MediaItem:
-        new_item = item.clone()
+    def copy_update_item(self, item: MediaItem, db_type: Optional[MediaDbType]=None, media_prefix: Optional[str]=None, quality: Optional[str]=None) -> MediaItem:
+        new_item = item.copy()
         
         if db_type:
             new_item.db_type = db_type
 
+        if media_prefix:
+            new_item.media_prefix = media_prefix
+
+        if quality:
+            new_item.quality = quality
+
         # Update the source and path
         new_item.source_item = item
-        new_item.full_file_path = self.create_full_file_path(new_item)
+        new_item.full_file_path = str(self.create_full_file_path(new_item))
 
         return new_item
 
-    def copy_update_items(self, items: list[MediaItem], db_type: MediaDbType) -> list[MediaItem]:
-        return [self.copy_update_item(item, db_type) for item in items]
+    def copy_update_items(self, items: list[MediaItem], db_type: MediaDbType, media_prefix: Optional[str]=None, quality: Optional[str]=None) -> list[MediaItem]:
+        return [self.copy_update_item(item, db_type, media_prefix, quality) for item in items]
 
     # Matching functions
     def get_full_file_path(self, item: MediaItem) -> str:
@@ -120,20 +126,32 @@ class ItemManager:
         # Return the remaining items
         return remaining_items
 
-    def is_item_in_list(self, item: MediaItem, items: list[MediaItem]) -> bool:
+    def is_item_in_list(self, item: MediaItem, items: list[MediaItem], match_key: ItemMatchKey=ItemMatchKey.FULL_PATH) -> bool:
         """Check if an item is in a list based on unique_id.
         
         Args:
             item (MediaItem): Item to check
             items (list[MediaItem]): List of items to check against
         """
-        return any(self.get_unique_id(item) == self.get_unique_id(existing_item) for existing_item in items)
+        func = self.get_match_key_function(match_key)
+        return any(func(item) == func(existing_item) for existing_item in items)
         
-    def get_matching_items(self, item: MediaItem, items: list[MediaItem]) -> list[MediaItem]:
+    def get_matching_item(self, item: MediaItem, items: list[MediaItem], match_key: ItemMatchKey=ItemMatchKey.FULL_PATH) -> MediaItem:
+        """Get the first item in a list that matches a given item based on unique_id.
+        
+        Args:
+            item (MediaItem): Item to check
+            items (list[MediaItem]): List of items to check against
+        """
+        func = self.get_match_key_function(match_key)
+        return next((existing_item for existing_item in items if func(item) == func(existing_item)), None)
+
+    def get_matching_items(self, item: MediaItem, items: list[MediaItem], match_key: ItemMatchKey=ItemMatchKey.FULL_PATH) -> list[MediaItem]:
         """Get all items in a list that match a given item based on unique_id.
         
         Args:
             item (MediaItem): Item to check
             items (list[MediaItem]): List of items to check against
         """
-        return [existing_item for existing_item in items if self.get_unique_id(item) == self.get_unique_id(existing_item)]
+        func = self.get_match_key_function(match_key)
+        return [existing_item for existing_item in items if func(item) == func(existing_item)]

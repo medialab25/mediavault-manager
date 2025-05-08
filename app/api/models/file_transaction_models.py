@@ -64,3 +64,6 @@ class FileTransactionList(BaseModel):
 
     def link(self, source: str, destination: str, settings: FileTransactionSettings = None, metadata: dict[str, Any] = None) -> None:
         self.transactions.append(FileTransaction(type=FileOperationType.LINK, source=source, destination=destination, settings=settings, metadata=metadata))
+
+    def add(self, source: str, destination: str, type: FileOperationType, settings: FileTransactionSettings = None, metadata: dict[str, Any] = None) -> None:
+        self.transactions.append(FileTransaction(type=type, source=source, destination=destination, settings=settings, metadata=metadata))
