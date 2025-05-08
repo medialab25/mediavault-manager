@@ -78,8 +78,8 @@ class SyncManager:
             file_transaction_summary = self.file_transaction_manager.apply_file_transactions(file_transactions, settings=None, dry_run=dry_run)
 
             # Delete empty folders
-            self._delete_empty_folders(self.media_library_info.cache_library_path, dry_run=dry_run)
-            self._delete_empty_folders(self.media_library_info.export_library_path, dry_run=dry_run)
+            #self._delete_empty_folders(self.media_library_info.cache_library_path, dry_run=dry_run)
+            #self._delete_empty_folders(self.media_library_info.export_library_path, dry_run=dry_run)
 
             # clear precache
             if not dry_run:
@@ -128,8 +128,8 @@ class SyncManager:
         self._add_file_transactions(file_transactions, expected_group, operation_type)
         return file_transactions
 
-    def _delete_empty_folders(self, base_path: Path, dry_run: bool = False) -> None:
-        for folder in base_path.glob("**/*"):
+    def _delete_empty_folders(self, base_path: str, dry_run: bool = False) -> None:
+        for folder in Path(base_path).glob("**/*"):
             if folder.is_dir() and not folder.iterdir():
                 if not dry_run:
                     folder.rmdir()
@@ -140,7 +140,7 @@ class SyncManager:
         for group in group_list:
             for item in group.items:
                 if item.full_file_path:
-                    allowed_files.append(item.full_file_path)
+                    allowed_files.append(Path(item.full_file_path))
 
         # Get list of all files in the base paths
         files = []
@@ -155,13 +155,14 @@ class SyncManager:
                 source=str(file),
                 destination=str(file),
                 type=FileOperationType.DELETE,
-                settings=FileTransactionSettings(existing_file_action=ExistingFileAction.SKIP_IF_SAME_SIZE),
+                settings=FileTransactionSettings.get_default_settings(),
                 metadata={})
 
 
     def _add_file_transactions(self, file_transactions: FileTransactionList, expected_group: MediaItemGroup, operation_type: FileOperationType) -> None:
         for item in expected_group.items:
             if not item.source_item:
+                file_transactions.delete(path=str(item.full_file_path))
                 continue
 
             file_transactions.add(

@@ -7,10 +7,20 @@ from .base_data_persistence import BaseDataPersistence
 from .item_manager import ItemManager
 
 class DataManager(BaseDataPersistence):
+    _instance = None
+
+    def __new__(cls, config: dict[str, Any]):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+
     def __init__(self, config: dict[str, Any]):
-        self.config = config
-        self.item_manager = ItemManager(config)
-        super().__init__(system_folder=config["system_data_path"], data_filename="data.json")
+        if not self._initialized:
+            super().__init__(system_folder=config["system_data_path"], data_filename="data.json")
+            self.config = config
+            self.item_manager = ItemManager(config)
+            self._initialized = True
 
     def set_add_cache_items(self, items: list[MediaItem]):
         self.set_data("add_cache_items", [item.model_dump() for item in items])
@@ -34,7 +44,7 @@ class DataManager(BaseDataPersistence):
                 # Log the error and skip invalid items
                 print(f"Failed to create MediaItem from data: {e}")
                 continue
-        return [MediaItem(**item) for item in (self.get_data("add_cache_items") or []) if item is not None]
+        return valid_items
 
     def get_remove_cache_items(self) -> list[MediaItem]:
         data = self.get_data("remove_cache_items") or []
