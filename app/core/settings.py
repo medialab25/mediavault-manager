@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     DESCRIPTION: str = "Media management system with Jellyfin integration"
     DEBUG: bool = False
     
+    # API settings
+    API_BASE_URL: str = "http://localhost:8000"
+    
     # Media settings
     MEDIA_ROOT: str = ""
     ALLOWED_EXTENSIONS: set = {"jpg", "jpeg", "png", "gif", "mp4", "mp3"}

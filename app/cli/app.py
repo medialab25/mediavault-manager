@@ -9,6 +9,7 @@ from app.api.models.search_request import SearchCacheExportFilter
 from app.core.config import Config
 from app.api.managers.media_manager import MediaManager
 from app.core.status import Status
+from app.cli.settings import cli_settings
 import json
 
 app = typer.Typer()
@@ -23,13 +24,10 @@ app.add_typer(cache_app, name="cache")
 
 console = Console()
 
-# Base URL for the API
-API_BASE_URL = "http://localhost:8000"
-
 async def make_request(method: str, endpoint: str, data: Optional[dict] = None) -> dict:
     """Make an HTTP request to the API"""
-    async with httpx.AsyncClient(timeout=300.0) as client:  # 5 minute timeout
-        url = f"{API_BASE_URL}/{endpoint}"
+    async with httpx.AsyncClient(timeout=cli_settings.TIMEOUT) as client:
+        url = f"{cli_settings.API_BASE_URL}/{endpoint}"
         try:
             if method == "GET":
                 response = await client.get(url)
@@ -300,7 +298,7 @@ def sync(
     
     result = asyncio.run(make_request("POST", "api/sync/", data={"dry_run": dry_run, "details": details}))
     
-        # Display the data if it exists
+    # Display the data if it exists
     if result.get('data'):
         if dry_run:
             console.print("\n[cyan]Files that would be synced:[/cyan]")
@@ -308,6 +306,4 @@ def sync(
             console.print("\n[cyan]Files synced:[/cyan]")
         console.print_json(data=result['data'])
     else:
-            console.print("[yellow]No results found[/yellow]")
-if __name__ == "__main__":
-    app() 
+        console.print("[yellow]No results found[/yellow]") 
