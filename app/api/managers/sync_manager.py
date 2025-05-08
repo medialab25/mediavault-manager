@@ -92,7 +92,8 @@ class SyncManager:
                 return {
                     "file_transaction_summary": file_transaction_summary,
                     "expected_cache_group": expected_cache_group,
-                    "expected_merge_group": expected_merge_group
+                    "expected_merge_group": expected_merge_group,
+                    "file_transactions": file_transactions
                 }
             else:
                 return {
