@@ -110,7 +110,7 @@ class CacheManager:
 
             # Remove any from the existing list if the unique id matches any in the remove list
             existing_items = self.data_manager.get_add_cache_items()
-            remaining_add_items = self.item_manager.remove_items_from_list(existing_items, cache_result.items)
+            remaining_add_items = self.item_manager.remove_items_from_list(existing_items, result.items)
             # Add the remaining items to the add cache items list
             self.data_manager.set_add_cache_items(remaining_add_items)
 
