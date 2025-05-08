@@ -23,10 +23,32 @@ class DataManager(BaseDataPersistence):
         self.set_data("add_cache_items", [item.model_dump() for item in merged_list])
 
     def get_add_cache_items(self) -> list[MediaItem]:
+        data = self.get_data("add_cache_items") or []
+        valid_items = []
+        for item in data:
+            if item is None:
+                continue
+            try:
+                valid_items.append(MediaItem(**item))
+            except Exception as e:
+                # Log the error and skip invalid items
+                print(f"Failed to create MediaItem from data: {e}")
+                continue
         return [MediaItem(**item) for item in (self.get_data("add_cache_items") or []) if item is not None]
 
     def get_remove_cache_items(self) -> list[MediaItem]:
-        return [MediaItem(**item) for item in (self.get_data("remove_cache_items") or []) if item is not None]
+        data = self.get_data("remove_cache_items") or []
+        valid_items = []
+        for item in data:
+            if item is None:
+                continue
+            try:
+                valid_items.append(MediaItem(**item))
+            except Exception as e:
+                # Log the error and skip invalid items
+                print(f"Failed to create MediaItem from data: {e}")
+                continue
+        return valid_items
 
     def append_remove_cache_items(self, items: list[MediaItem]):
         # Get existing items
