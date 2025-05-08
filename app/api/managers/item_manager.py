@@ -1,5 +1,6 @@
 from enum import Enum
-from typing import Any, Callable
+from pathlib import Path
+from typing import Any, Callable, Optional
 from app.api.managers.media_manager import MediaManager
 from app.api.models.media_models import MediaDbType, MediaItem
 
@@ -33,6 +34,21 @@ class ItemManager:
         func = self.get_match_key_function(match_key)
         return [self.get_unique_id_by_function(item, func) for item in items]
 
+    def copy_update_item(self, item: MediaItem, db_type: Optional[MediaDbType]=None) -> MediaItem:
+        new_item = item.clone()
+        
+        if db_type:
+            new_item.db_type = db_type
+
+        # Update the source and path
+        new_item.source_item = item
+        new_item.full_file_path = self.create_full_file_path(new_item)
+
+        return new_item
+
+    def copy_update_items(self, items: list[MediaItem], db_type: MediaDbType) -> list[MediaItem]:
+        return [self.copy_update_item(item, db_type) for item in items]
+
     # Matching functions
     def get_full_file_path(self, item: MediaItem) -> str:
         return item.full_file_path
@@ -42,6 +58,16 @@ class ItemManager:
 
     def get_relative_title_file_path(self, item: MediaItem) -> str:
         return item.relative_title_filepath
+    
+    # Path generation
+    def get_base_path(self, item: MediaItem) -> str:
+        return (self.media_library_info.media_library_path 
+                if item.db_type == MediaDbType.MEDIA 
+                else self.media_library_info.cache_library_path)
+
+    def create_full_file_path(self, item: MediaItem) -> str:
+        base_path = self.get_base_path(item)
+        return Path(base_path) / f"{item.media_prefix}-{item.quality}" / item.title / item.relative_title_filepath
 
 #####
     def get_file_path_link(self, item: MediaItem, media_db_type: MediaDbType) -> str:
