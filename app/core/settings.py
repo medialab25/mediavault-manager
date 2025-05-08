@@ -50,6 +50,14 @@ class Settings(BaseSettings):
         "storage_paths": []
     }
 
+    # Task settings
+    TASKS: Dict[str, Any] = {
+        "sync": {
+            "enabled": True,
+            "interval": 1
+        }
+    }
+
     def __init__(self, **data):
         # First load production config as base
         try:
