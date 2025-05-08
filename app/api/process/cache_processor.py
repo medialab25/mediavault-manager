@@ -2,6 +2,7 @@ import os
 from typing import Any
 from app.api.managers.data_manager import DataManager
 from app.api.managers.item_manager import ItemManager
+from app.api.managers.matrix_manager import MatrixManager
 from app.api.managers.media_manager import MediaManager
 from app.api.models.media_models import MediaDbType, MediaItemGroup
 from app.api.models.search_request import SearchRequest
@@ -12,7 +13,9 @@ class CacheProcessor:
         self.media_manager = MediaManager(config)
         self.item_manager = ItemManager(config)
         self.data_manager = DataManager(config)
-        self.media_path = self.media_manager.get_media_library_info().media_library_path
+        self.matrix_manager = MatrixManager(config)
+        self.media_library_info = self.matrix_manager.get_media_library_info()
+        self.media_path = self.media_library_info.media_library_path
         
     def get_expected_cache(self, current_cache: MediaItemGroup) -> MediaItemGroup:
         """Get the expected cache structure

@@ -8,11 +8,12 @@ import logging
 import sys
 
 from app.core.settings import settings
-from app.api.routers import views, system
+from app.api.routers import views
 from app.api.routers.media import router as media_router
 from app.api.routers.search import router as search_router
 from app.api.routers.cache import router as cache_router
 from app.api.routers.sync import router as sync_router
+from app.api.routers.system import router as system_router
 from app.scheduler import start_scheduler, stop_scheduler
 
 # Configure logging
@@ -48,7 +49,7 @@ templates = Jinja2Templates(directory="app/templates")
 # Include routers
 #app.include_router(views.router)
 #app.include_router(tasks.router)
-app.include_router(system.router, prefix="/system")
+app.include_router(system_router, prefix="/api/system", tags=["system"])
 app.include_router(media_router, prefix="/api/media", tags=["media"])
 app.include_router(search_router, prefix="/api/search", tags=["search"])
 app.include_router(cache_router, prefix="/api/cache", tags=["cache"])

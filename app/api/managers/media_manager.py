@@ -1,6 +1,8 @@
 # Management of media using the file_manager class
 import json
 from pathlib import Path
+from app.api.managers.data_manager import DataManager
+from app.api.managers.matrix_manager import MatrixManager
 from app.api.managers.media_filter import MediaFilter
 from app.api.models.media_models import (
     ExtendedMediaInfo, MediaDbType, MediaGroupFolder, MediaGroupFolderList,
@@ -22,6 +24,8 @@ class MediaManager:
         self.cache_base_path = str(Path(config.get("cache_path")))
         self.export_base_path = str(Path(config.get("media_export_path")))
         self.system_data_path = str(Path(config.get("system_data_path")))
+        self.data_manager = DataManager(config)
+        # self.matrix_manager = MatrixManager(config)
 
     def _generate_media_id(self, relative_path: str, media_type: str, media_prefix: str, title: str, season: Optional[int] = None, episode: Optional[int] = None) -> str:
         """Generate a unique ID for the media item based on its properties."""
@@ -228,32 +232,12 @@ class MediaManager:
             size=media_item.size,
             created_at=media_item.created_at,
             updated_at=media_item.updated_at,
-            metadata=media_item.metadata)
-        
-    def get_media_matrix_info(self) -> dict[str, MediaMatrixInfo]:
-        """Get the media matrix info"""
-        source_matrix = self.config.get("source_matrix")
-        media_matrix_info = {}
-        for media_key, config in source_matrix.items():
-            media_type = config["media_type"] if config["media_type"] else media_key
-            media_prefix = config["prefix"] if config["prefix"] else media_key
-            media_matrix_info[media_key] = MediaMatrixInfo(
-                media_type=media_type,
-                media_prefix=media_prefix,
-                quality_order=config["quality_order"],
-                merge_prefix=config.get("merge_prefix", media_prefix),
-                merge_quality=config.get("merge_quality", "merged"),
-                use_cache=config["use_cache"]
-            )
-        return media_matrix_info
+            metadata=media_item.metadata)      
 
-    def get_media_library_info(self) -> MediaLibraryInfo:
-        """Get the media library info"""
-        media_matrix_info = self.get_media_matrix_info()
-        return MediaLibraryInfo(
-            media_matrix_info=media_matrix_info,
-            media_library_path=self.media_base_path,
-            cache_library_path=self.cache_base_path,
-            export_library_path=self.export_base_path,
-            system_data_path=self.system_data_path
-        )
+    def request_media_library_update(self) -> None:
+        """Request a media library update"""
+        self.data_manager.set_media_library_update_request()
+
+    def clear_media_library_update_request(self) -> None:
+        """Clear a media library update request"""
+        self.data_manager.clear_media_library_update_request()

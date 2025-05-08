@@ -34,3 +34,14 @@ class DataManager(BaseDataPersistence):
         # Merge with new items ensuring uniqueness
         merged_list = self.item_manager.merge_unique_items(existing_items, items)
         self.set_data("remove_cache_items", [item.model_dump() for item in merged_list])
+
+    def get_media_library_update_request(self) -> int   :
+        return self.get_data("media_library_update_request") or 0   
+
+    def set_media_library_update_request(self):
+        no_requests = self.get_media_library_update_request()
+        self.set_data("media_library_update_request", no_requests + 1)
+        self.update()
+
+    def clear_media_library_update_request(self) -> None:
+        self.set_data("media_library_update_request", 0)

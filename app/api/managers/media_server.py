@@ -32,3 +32,4 @@ class MediaServer:
                 "message": f"Failed to refresh media library: {str(e)}",
                 "error": str(e)
             } 
+        

@@ -77,6 +77,13 @@ def refresh():
     result = asyncio.run(make_request("POST", "api/media/refresh"))
     console.print(f"[green]Success:[/green] {result['message']}")
 
+@media_app.command()
+def update():
+    """Update the media library by scanning for changes and updating metadata"""
+    console.print("[yellow]Updating media library...[/yellow]")
+    result = asyncio.run(make_request("POST", "api/media/update"))
+    console.print(f"[green]Success:[/green] {result['message']}")
+
 # Search command
 @app.command()
 def search(
@@ -158,10 +165,12 @@ def search(
 def health():
     """Check system health"""
     console.print("[yellow]Checking system health...[/yellow]")
-    result = asyncio.run(make_request("GET", "system/health"))
+    result = asyncio.run(make_request("GET", "api/system/health"))
     console.print(f"[green]Status:[/green] {result['message']}")
     if result.get('data', {}).get('timestamp'):
         console.print(f"[green]Timestamp:[/green] {result['data']['timestamp']}")
+    if result.get('data', {}).get('media_library_update_request_count'):
+        console.print(f"[green]Media library update request count:[/green] {result['data']['media_library_update_request_count']}")
 
 # Cache commands
 @cache_app.command()

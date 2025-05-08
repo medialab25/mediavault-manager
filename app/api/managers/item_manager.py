@@ -1,7 +1,7 @@
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Optional
-from app.api.managers.media_manager import MediaManager
+from app.api.managers.matrix_manager import MatrixManager
 from app.api.models.media_models import MediaDbType, MediaItem
 
 class ItemMatchKey(Enum):
@@ -12,8 +12,8 @@ class ItemMatchKey(Enum):
 class ItemManager:
     def __init__(self, config: dict[str, Any]):
         self.config = config
-        self.media_manager = MediaManager(config)
-        self.media_library_info = self.media_manager.get_media_library_info()
+        self.matrix_manager = MatrixManager(config)
+        self.media_library_info = self.matrix_manager.get_media_library_info()
         
     def get_match_key_function(self, match_key: ItemMatchKey) -> Callable[[MediaItem], str]:
         if match_key == ItemMatchKey.FULL_PATH:

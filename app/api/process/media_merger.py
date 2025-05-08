@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any, List, Dict
 
 from app.api.managers.item_manager import ItemManager, ItemMatchKey
+from app.api.managers.matrix_manager import MatrixManager
 from app.api.managers.media_filter import MediaFilter
 from app.api.managers.media_manager import MediaManager
 from app.api.managers.media_query import MediaQuery
@@ -23,7 +24,8 @@ class MediaMerger:
         self.media_filter = MediaFilter(config)
         self.cache_path = config["cache_path"]
         self.media_manager = MediaManager(config)
-        self.media_library_info = self.media_manager.get_media_library_info()   
+        self.matrix_manager = MatrixManager(config)
+        self.media_library_info = self.matrix_manager.get_media_library_info()   
         self.item_manager = ItemManager(config)
 
     def merge_libraries(self, current_media: MediaItemGroup, current_cache: MediaItemGroup) -> MediaItemGroup:

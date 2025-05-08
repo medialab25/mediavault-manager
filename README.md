@@ -16,7 +16,7 @@ docker run -d -p 8000:8000 --name mediavault mediavault-manager
 
 3. Test the health endpoint:
 ```bash
-curl http://localhost:8000/system/health
+curl http://localhost:8000/api/system/health
 ```
 
 ### Container Management
