@@ -69,7 +69,9 @@ class ItemManager:
     def get_base_path(self, item: MediaItem) -> str:
         return (self.media_library_info.media_library_path 
                 if item.db_type == MediaDbType.MEDIA 
-                else self.media_library_info.cache_library_path)
+                else self.media_library_info.cache_library_path
+                if item.db_type == MediaDbType.CACHE
+                else self.media_library_info.export_library_path)
 
     def create_full_file_path(self, item: MediaItem) -> str:
         base_path = self.get_base_path(item)

@@ -79,7 +79,7 @@ class MediaMerger:
             all_merged_items = [item for items in merged_items_dict.values() for item in items]
 
             for item in all_merged_items:
-                target_db_type = MediaDbType.CACHE if use_cache else MediaDbType.MEDIA
+                target_db_type = MediaDbType.CACHE if use_cache else MediaDbType.EXPORT
                 new_item = self.item_manager.copy_update_item(item, target_db_type, media_prefix=merge_prefix, quality=merge_quality)
                 result_items.append(new_item)
 

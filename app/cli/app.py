@@ -94,7 +94,7 @@ def search(
     add_extended_info: bool = typer.Option(False, "--extended-info", "-e", help="Add extended info"),
     season: Optional[int] = typer.Option(None, "--season", "-s", help="Season number"),
     episode: Optional[int] = typer.Option(None, "--episode", "-e", help="Episode number"),
-    db_type: Optional[str] = typer.Option("media", "--db-type", "-d", help="Database types (comma-separated: media,cache)"),
+    db_type: Optional[str] = typer.Option("media", "--db-type", "-d", help="Database types (comma-separated: media,cache,export)"),
     all_items: bool = typer.Option(False, "--all-items", "-a", help="Show all items"),
     matrix_filepath: Optional[str] = typer.Option(None, "--matrix-filepath", "-f", help="Matrix filepath"),
     relative_filepath: Optional[str] = typer.Option(None, "--relative-filepath", "-r", help="Relative filepath"),

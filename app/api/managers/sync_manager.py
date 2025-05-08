@@ -4,6 +4,7 @@ from app.api.managers.cache_manager import CacheManager
 from app.api.managers.data_manager import DataManager
 from app.api.managers.file_transaction_manager import FileTransactionManager
 from app.api.managers.item_manager import ItemManager
+from app.api.managers.matrix_manager import MatrixManager
 from app.api.managers.media_manager import MediaManager
 from app.api.managers.media_query import MediaQuery
 from app.api.models.file_transaction_models import FileTransactionList, FileTransactionSettings, ExistingFileAction, FileOperationType
@@ -25,7 +26,8 @@ class SyncManager:
         self.cache_manager = CacheManager(config)
         self.item_manager = ItemManager(config)
         self.data_manager = DataManager(config)
-
+        self.matrix_manager = MatrixManager(config)
+        self.media_library_info = self.matrix_manager.get_media_library_info()
     def sync(self, dry_run: bool = False, details: bool = False, force: bool = False) -> dict[str, Any]:
         """Sync the cache with the media library
         
@@ -62,6 +64,11 @@ class SyncManager:
 
             file_transactions = FileTransactionList(transactions=[])
 
+            # Get file transactions for delete group
+            group_list = [expected_cache_group, expected_merge_group]
+            path_list = [self.media_library_info.cache_library_path, self.media_library_info.export_library_path]
+            self._add_file_delete_transactions(file_transactions, group_list, path_list)
+
             # Get file transactions for cache
             self._add_file_transactions(file_transactions, expected_cache_group, FileOperationType.COPY)
 
@@ -69,6 +76,10 @@ class SyncManager:
             self._add_file_transactions(file_transactions, expected_merge_group, FileOperationType.LINK)
 
             file_transaction_summary = self.file_transaction_manager.apply_file_transactions(file_transactions, settings=None, dry_run=dry_run)
+
+            # Delete empty folders
+            self._delete_empty_folders(self.media_library_info.cache_library_path, dry_run=dry_run)
+            self._delete_empty_folders(self.media_library_info.export_library_path, dry_run=dry_run)
 
             # clear precache
             if not dry_run:
@@ -116,6 +127,37 @@ class SyncManager:
         file_transactions = FileTransactionList(transactions=[])
         self._add_file_transactions(file_transactions, expected_group, operation_type)
         return file_transactions
+
+    def _delete_empty_folders(self, base_path: Path, dry_run: bool = False) -> None:
+        for folder in base_path.glob("**/*"):
+            if folder.is_dir() and not folder.iterdir():
+                if not dry_run:
+                    folder.rmdir()
+
+    def _add_file_delete_transactions(self, file_transactions: FileTransactionList, group_list: list[MediaItemGroup], base_paths: list[str]) -> None:
+        # Get list of all allowed files from the group list
+        allowed_files = []
+        for group in group_list:
+            for item in group.items:
+                if item.full_file_path:
+                    allowed_files.append(item.full_file_path)
+
+        # Get list of all files in the base paths
+        files = []
+        for base_path in base_paths:
+            files.extend([f for f in Path(base_path).glob("**/*") if f.is_file()])
+
+        # Get list of all files in the base paths that are not in the allowed files list
+        files_to_delete = [file for file in files if file not in allowed_files]
+
+        for file in files_to_delete:
+            file_transactions.add(
+                source=str(file),
+                destination=str(file),
+                type=FileOperationType.DELETE,
+                settings=FileTransactionSettings(existing_file_action=ExistingFileAction.SKIP_IF_SAME_SIZE),
+                metadata={})
+
 
     def _add_file_transactions(self, file_transactions: FileTransactionList, expected_group: MediaItemGroup, operation_type: FileOperationType) -> None:
         for item in expected_group.items:

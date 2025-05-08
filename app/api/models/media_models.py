@@ -7,6 +7,7 @@ from pydantic import BaseModel
 class MediaDbType(str,Enum):
     MEDIA = "media"
     CACHE = "cache"
+    EXPORT = "export"
 
 class ExtendedMediaInfo(BaseModel):
     size: int
