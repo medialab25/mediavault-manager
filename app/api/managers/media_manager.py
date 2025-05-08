@@ -4,7 +4,7 @@ from pathlib import Path
 from app.api.managers.media_filter import MediaFilter
 from app.api.models.media_models import (
     ExtendedMediaInfo, MediaDbType, MediaGroupFolder, MediaGroupFolderList,
-    MediaFileItem, MediaItemFolder, MediaItem, MediaItemGroup, MediaLibraryInfo, MediaMatrixInfo
+    MediaItem, MediaItemGroup, MediaLibraryInfo, MediaMatrixInfo
 )
 from app.api.models.search_request import SearchCacheExportFilter, SearchRequest
 from app.core.config import Config
@@ -54,16 +54,10 @@ class MediaManager:
         return None, None
 
     def get_db_path(self, db_type: MediaDbType) -> Path:
-        if db_type == MediaDbType.MEDIA:
-            return Path(self.media_base_path)
-        elif db_type == MediaDbType.CACHE:
+        if db_type == MediaDbType.CACHE:
             return Path(self.cache_base_path)
-        elif db_type == MediaDbType.SHADOW:
-            return Path(self.cache_shadow_path)
-        else:
-            return Path(self.media_base_path)  # Default to media base path for UNDEFINED
+        return Path(self.media_base_path)
 
-    #def get_db_path_with_base_path(self, db_type: MediaDbType, base_path: str) -> Path:
 
     # Get all media group folders using the source_matrix in the config
     def get_media_group_folders(self, base_path: Path=None) -> MediaGroupFolderList:
@@ -99,21 +93,15 @@ class MediaManager:
 
         return MediaGroupFolderList(groups=list(unique_media_groups.values()))
 
-    def search_media(self, request: SearchRequest, base_path: str=None) -> MediaItemGroup:
+    def search_media(self, request: SearchRequest) -> MediaItemGroup:
         """Search media in cache by title and optional parameters"""
 
         # For each db_type get the base path and add to list
         all_items = []
-        if base_path:
-            base_path_conv = Path(base_path)
-            result = self._search_media_db(request, base_path_conv, MediaDbType.UNDEFINED)
+        for db_type in request.db_type:
+            result = self._search_media_db(request, self.get_db_path(db_type), db_type)
             if result and result.items:
                 all_items.extend(result.items)
-        else:
-            for db_type in request.db_type:
-                result = self._search_media_db(request, self.get_db_path(db_type), db_type)
-                if result and result.items:
-                    all_items.extend(result.items)
 
         # Return combined results
         return MediaItemGroup(items=all_items)
@@ -143,12 +131,6 @@ class MediaManager:
         # Filter groups based on request
         filtered_media_groups = []
         for media_group in media_groups.groups:
-
-            #if request.cache_export_filter == SearchCacheExportFilter.APPLY and not media_group.cache_export:
-           #     continue
-
-           # if request.cache_export_filter == SearchCacheExportFilter.EXCLUDE and media_group.cache_export:
-            #    continue
 
             if request.media_type and request.media_type != media_group.media_type:
                 continue
@@ -224,6 +206,8 @@ class MediaManager:
             episode=episode,
             extended=extended,
             relative_title_filepath=relative_title_filepath,
+            full_file_path=str(full_file_path),
+            source_item=None,
             metadata=metadata
         )
 
@@ -273,23 +257,3 @@ class MediaManager:
             export_library_path=self.export_base_path,
             system_data_path=self.system_data_path
         )
-
-
-    # def get_media_target_path(self, db_type: MediaDbType, media_item: MediaItem) -> Path:
-    #     """Get the target path for the media item based on the media type and quality"""
-    #     media_prefix = media_item.media_prefix
-    #     quality = media_item.quality
-    #     file_name = media_item.full_path.split("/")[-1]
-    #     return self.get_db_path(db_type) / f"{media_prefix}-{quality}" / media_item.title / file_name
-
-    # def get_media_relative_path_from_media_item(self, media_item: MediaItem) -> str:
-    #     """Get the relative path for the media item based on the media type and quality"""
-    #     media_prefix = media_item.media_prefix
-    #     quality = media_item.quality
-    #     file_name = media_item.full_path.split("/")[-1]
-    #     return os.path.join(f"{media_prefix}-{quality}", media_item.title, file_name)
-
-    # def get_media_relative_path(self, media_prefix: str, quality: str, title: str, file_name: str) -> str:
-    #     """Get the relative path for the media item based on the media type and quality"""
-    #     return os.path.join(f"{media_prefix}-{quality}", title, file_name)
-

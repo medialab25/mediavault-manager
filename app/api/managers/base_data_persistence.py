@@ -2,7 +2,7 @@ import json
 import os
 from typing import Any, Dict
 
-from app.api.models.media_models import MediaItem, MediaItemGroup, MediaItemGroupList
+from app.api.models.media_models import MediaItem, MediaItemGroup
 
 
 class BaseDataPersistence:

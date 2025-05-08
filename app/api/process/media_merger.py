@@ -9,7 +9,7 @@ from app.api.managers.item_manager import ItemManager
 from app.api.managers.media_filter import MediaFilter
 from app.api.managers.media_manager import MediaManager
 from app.api.managers.media_query import MediaQuery
-from app.api.models.media_models import MediaDbType, MediaItem, MediaItemGroup, MediaItemGroupDict, MediaItemGroupList
+from app.api.models.media_models import MediaDbType, MediaItem, MediaItemGroup
 from app.api.models.search_request import SearchRequest
 
 class FolderOperationStatus(Enum):

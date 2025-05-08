@@ -25,11 +25,4 @@ class SearchRequest(BaseModel):
     cache_export_filter: Optional[SearchCacheExportFilter] = SearchCacheExportFilter.ALL # Whether to include cache export in the search
     matrix_filepath: Optional[str] = None # Optional matrix filepath to search for
     relative_filepath: Optional[str] = None # Optional relative filepath to search for
-
-class SearchRequestAll(SearchRequest):
-    """
-    Model for handling search API requests.
-    """
-    db_type: Optional[List[MediaDbType]] = [MediaDbType.ALL]
-    
     

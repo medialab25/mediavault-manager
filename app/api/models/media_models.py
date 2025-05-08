@@ -7,9 +7,6 @@ from pydantic import BaseModel
 class MediaDbType(str,Enum):
     MEDIA = "media"
     CACHE = "cache"
-    SHADOW = "shadow"
-    UNDEFINED = "undefined"
-    ALL = "all"
 
 class ExtendedMediaInfo(BaseModel):
     size: int
@@ -50,9 +47,11 @@ class MediaItem(BaseModel):
     season: Optional[int] = None
     episode: Optional[int] = None
     extended: Optional[ExtendedMediaInfo] = None
+    source_item: Optional["MediaItem"] = None
+    full_file_path: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
 
-    def clone(self) -> "MediaItem":
+    def copy(self) -> "MediaItem":
         return MediaItem(
             db_type=self.db_type,
             media_type=self.media_type,
@@ -63,9 +62,18 @@ class MediaItem(BaseModel):
             episode=self.episode,
             relative_title_filepath=self.relative_title_filepath,
             extended=self.extended,
+            source_item=self.source_item,
+            full_file_path=self.full_file_path,
             metadata=self.metadata.copy() if self.metadata else {}
         )
     
+    # Path with all folders execpt the base_path
+    def get_unique_path(self) -> str:
+        return f"{self.media_prefix}-{self.quality}/{self.title}/{self.relative_title_filepath}"
+    
+
+
+#####
     def clone_with_update(self, db_type: MediaDbType) -> "MediaItem":
         result = self.clone()
         result.db_type = db_type
@@ -110,8 +118,10 @@ class MediaItemGroup(BaseModel):
     items: List[MediaItem]
     metadata: Optional[Dict[str, Any]] = None
    
-    def clone(self) -> "MediaItemGroup":
-        return MediaItemGroup(items=[item.clone() for item in self.items])
+    def copy(self) -> "MediaItemGroup":
+        return MediaItemGroup(items=[item.copy() for item in self.items])
+
+#####
 
     def title_file_path_exists(self, title_file_path: str) -> bool:
         return any(item.relative_title_filepath == title_file_path for item in self.items)
@@ -120,8 +130,8 @@ class MediaItemGroup(BaseModel):
         lst = [item.get_path(media_path, cache_path, is_merged) for item in self.items]
         return item_path in lst
 
-class MediaItemGroupList(BaseModel):
-    groups: List[MediaItemGroup]
+#class MediaItemGroupList(BaseModel):
+#    groups: List[MediaItemGroup]
 
 class MediaItemGroupDict(BaseModel):
     groups: Dict[str, MediaItemGroup]

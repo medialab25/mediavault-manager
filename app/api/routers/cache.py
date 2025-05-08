@@ -10,7 +10,7 @@ from app.core.status import Status
 from app.core.settings import settings
 from app.api.models.response import APIResponse
 from app.api.managers.media_manager import MediaManager
-from app.api.models.media_models import MediaDbType, MediaItemGroupList
+from app.api.models.media_models import MediaDbType
 from app.api.models.search_request import SearchRequest
 
 logger = logging.getLogger(__name__)
