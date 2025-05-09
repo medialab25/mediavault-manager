@@ -25,10 +25,8 @@ logging.basicConfig(
         logging.FileHandler('/tmp/mediavault-manager.log')
     ]
 )
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    tasks = settings.TASKS
     """Handle startup and shutdown events"""
     start_scheduler()
     yield

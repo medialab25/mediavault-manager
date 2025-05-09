@@ -34,7 +34,7 @@ class SyncManager:
         self.manifest_manager = ManifestManager(config)
         self.media_server = MediaServer()
         
-    def sync(self, dry_run: bool = False, details: bool = False, force: bool = False) -> dict[str, Any]:
+    async def sync(self, dry_run: bool = False, details: bool = False, force: bool = False) -> dict[str, Any]:
         """Sync the cache with the media library
         
         Args:
@@ -102,7 +102,7 @@ class SyncManager:
                 self.manifest_manager.update()
 
                 # Refresh media server
-                self.media_server.refresh_media()
+                await self.media_server.refresh_media()
 
             if details:
                 return {

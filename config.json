@@ -47,15 +47,11 @@
     "TASKS": {
         "sync": {
             "enabled": true,
-            "cron": "0 * * * *"
-        },
-        "cache_cleanup": {
-            "enabled": true,
-            "cron": "0 0 * * *"
-        },
-        "cache_prune": {
-            "enabled": true,
-            "cron": "0 0 * * *"
+            "task_type": "cron",
+            "function_name": "sync",
+            "cron_hour": "*",
+            "cron_minute": "*",
+            "cron_second": "0"
         }
     },
     "DEVICES": {
