@@ -23,6 +23,14 @@
                 "merge_prefix": "tv",
                 "merge_quality": "merged",
                 "use_cache": true
+            },
+            "movies": {
+                "prefix": "movies",
+                "media_type": "movie",
+                "quality_order": ["uhd", "hd"],
+                "merge_prefix": "movies",
+                "merge_quality": "merged",
+                "use_cache": true
             }
         },
         "cache_path": "/srv/disks/media-ssd/media",

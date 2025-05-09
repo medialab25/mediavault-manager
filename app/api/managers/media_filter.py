@@ -11,6 +11,8 @@ class MediaFilter:
         # Check if the media item matches the request
         if self.request.media_type and self.request.media_type != media_item.media_type:
             return False
+        if self.request.media_prefix and self.request.media_prefix != media_item.media_prefix:
+            return False
         if self.request.quality and self.request.quality != media_item.quality:
             return False
         if self.request.query and self.request.query.lower() not in media_item.title.lower():
