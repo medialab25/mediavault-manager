@@ -62,6 +62,12 @@ EOL
     systemctl enable "$SERVICE_NAME"
     systemctl start "$SERVICE_NAME"
     
+    # Ensure the log directory exists with correct permissions
+    log_dir="/var/log/mediavault-manager"
+    mkdir -p "$log_dir"
+    chown -R 1000:1000 "$log_dir"
+    chmod 755 "$log_dir"
+
     echo "Service installed and started successfully"
 }
 
