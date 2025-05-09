@@ -2,6 +2,7 @@
     "PROJECT_NAME": "MediaVault Manager",
     "VERSION": "0.1.0",
     "DESCRIPTION": "MediaVault Management System",
+    "API_BASE_URL": "http://localhost:8000",
     "MEDIA_ROOT": "media",
     "ALLOWED_EXTENSIONS": ["jpg", "jpeg", "png", "gif", "mp4", "mp3"],
     "MAX_CONTENT_LENGTH": 16777216,
@@ -9,36 +10,54 @@
         "url": "http://192.168.10.20",
         "api_key": "dc8ede37692c47f08322f09e711840fb"
     },
-    "MEDIA_MERGE": {
-        "user": "1000",
-        "group": "1000"
-    },
     "MEDIA_LIBRARY": {
+        "user": "1000",
+        "group": "1000",
         "default_source_path": "/srv/storage/media",
-        "default_full_source_path": "/srv/storage-mfs/media",
+        "default_full_source_path": "/srv/storage-media/media",
         "source_matrix": {
-            "movies": {
-                "prefix": "movies",
-                "media_type": "movie",
-                "quality_order": ["uhd", "hd"],
-                "merged_path": "/srv/storage/media/movies-merged"
-            },
             "tv": {
                 "prefix": "tv",
                 "media_type": "tv",
                 "quality_order": ["uhd", "hd"],
-                "merged_path": "/srv/storage/media/tv-merged"
-            },
-            "tv-1080p": {
-                "prefix": "tv",
-                "media_type": "tv",
-                "quality_order": ["hd"],
-                "merged_path": "/srv/storage/media/export/tv-1080p",
-                "cache_export": true
+                "merge_prefix": "tv",
+                "merge_quality": "merged",
+                "use_cache": true
             }
         },
         "cache_path": "/srv/disks/media-ssd/media",
-        "cache_shadow_path": "/srv/storage/media/media-shadow-cache",
+        "media_export_path": "/srv/storage/media/export",
+        "cache_export_path": "/srv/disks/media-ssd/media/export",
         "system_data_path": "/srv/storage/media/system-data"
+    },
+    "MEDIA_CACHE": {
+        "max_cache_size_gb": 10,
+        "manual": {
+            "max_cache_size_gb": 0
+        },
+        "episode_prefetch": {
+            "enabled": true,
+            "max_cache_size_gb": 10
+        },
+        "latest_added": {
+            "enabled": true,
+            "max_cache_size_gb": 10
+        }
+    },
+    "TASKS": {
+        "sync": {
+            "enabled": true,
+            "task_type": "cron",
+            "function_name": "sync",
+            "cron_hour": "0",
+            "cron_minute": "15",
+            "cron_second": "*"
+        }
+    },
+    "DEVICES": {
+        "disk01": {
+            "device": "/dev/nvme0n1",
+            "mount_point": "/srv/disks/media-hdd/media"
+        }   
     }
-} 
+}  

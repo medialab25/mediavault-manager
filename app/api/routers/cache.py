@@ -10,7 +10,7 @@ from app.core.status import Status
 from app.core.settings import settings
 from app.api.models.response import APIResponse
 from app.api.managers.media_manager import MediaManager
-from app.api.models.media_models import MediaDbType, MediaItemGroupList
+from app.api.models.media_models import MediaDbType
 from app.api.models.search_request import SearchRequest
 
 logger = logging.getLogger(__name__)
@@ -66,4 +66,14 @@ async def remove_from_cache(data: Dict = Body(...)):
         )
     except Exception as e:
         logger.error(f"Error removing from cache: {str(e)}", exc_info=True)
+        raise APIResponse.error(str(e))
+
+@router.post("/pre-cache/clear", status_code=200)
+async def clear_pre_cache():
+    """Clear the pre cache"""
+    try:
+        cache_manager.clear_pre_cache()
+        return APIResponse.success(message="Pre cache cleared successfully")
+    except Exception as e:
+        logger.error(f"Error clearing pre cache: {str(e)}", exc_info=True)
         raise APIResponse.error(str(e))

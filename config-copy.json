@@ -1,0 +1,44 @@
+{
+    "PROJECT_NAME": "MediaVault Manager",
+    "VERSION": "0.1.0",
+    "DESCRIPTION": "MediaVault Management System",
+    "MEDIA_ROOT": "media",
+    "ALLOWED_EXTENSIONS": ["jpg", "jpeg", "png", "gif", "mp4", "mp3"],
+    "MAX_CONTENT_LENGTH": 16777216,
+    "JELLYFIN": {
+        "url": "http://192.168.10.20",
+        "api_key": "dc8ede37692c47f08322f09e711840fb"
+    },
+    "MEDIA_MERGE": {
+        "user": "1000",
+        "group": "1000"
+    },
+    "MEDIA_LIBRARY": {
+        "default_source_path": "/srv/storage/media",
+        "default_full_source_path": "/srv/storage-mfs/media",
+        "source_matrix": {
+            "movies": {
+                "prefix": "movies",
+                "media_type": "movie",
+                "quality_order": ["uhd", "hd"],
+                "merged_path": "/srv/storage/media/export/movies-merged"
+            },
+            "tv": {
+                "prefix": "tv",
+                "media_type": "tv",
+                "quality_order": ["uhd", "hd"],
+                "merged_path": "/srv/storage/media/export/tv-merged"
+            },
+            "tv-1080p": {
+                "prefix": "tv",
+                "media_type": "tv",
+                "quality_order": ["hd"],
+                "merged_path": "/srv/storage/media/export/tv-1080p",
+                "cache_export": true
+            }
+        },
+        "cache_path": "/srv/disks/media-ssd/media",
+        "cache_shadow_path": "/srv/storage/media/media-shadow-cache",
+        "system_data_path": "/srv/storage/media/system-data"
+    }
+} 

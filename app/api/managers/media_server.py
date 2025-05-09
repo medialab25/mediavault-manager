@@ -1,21 +1,18 @@
 from app.api.adapters.jellyfin import JellyfinClient
 from app.core.status import Status
+from app.core.settings import settings
 import logging
 
 logger = logging.getLogger(__name__)
 
 class MediaServer:
-    def __init__(self, jellyfin_url: str, jellyfin_api_key: str):
+    def __init__(self):
         """
-        Initialize MediaServer with Jellyfin configuration.
-        
-        Args:
-            jellyfin_url (str): Jellyfin server URL
-            jellyfin_api_key (str): Jellyfin API key
+        Initialize MediaServer with Jellyfin configuration from settings.
         """
         self.jellyfin_client = JellyfinClient(
-            url=jellyfin_url,
-            api_key=jellyfin_api_key
+            url=settings.JELLYFIN["url"],
+            api_key=settings.JELLYFIN["api_key"]
         )
         
     async def refresh_media(self):
@@ -32,3 +29,4 @@ class MediaServer:
                 "message": f"Failed to refresh media library: {str(e)}",
                 "error": str(e)
             } 
+        

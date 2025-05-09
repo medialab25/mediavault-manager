@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     DESCRIPTION: str = "Media management system with Jellyfin integration"
     DEBUG: bool = False
     
+    # API settings
+    API_BASE_URL: str = "http://localhost:8000"
+    
     # Media settings
     MEDIA_ROOT: str = ""
     ALLOWED_EXTENSIONS: set = {"jpg", "jpeg", "png", "gif", "mp4", "mp3"}
@@ -35,16 +38,21 @@ class Settings(BaseSettings):
     # Media Library settings
     MEDIA_LIBRARY: Dict[str, Any] = {}
 
-    # Media Merge settings
-    MEDIA_MERGE: Dict[str, str] = {
-        "user": "1000",
-        "group": "1000"
-    }
+    # Devices settings (optional)
+    DEVICES: Optional[Dict[str, Dict[str, str]]] = {}
 
     # Cache settings
     MEDIA_CACHE: Dict[str, Any] = {
         "cache_path": "/srv/disks/media-ssd/media",
         "storage_paths": []
+    }
+
+    # Task settings
+    TASKS: Dict[str, Any] = {
+        "sync": {
+            "enabled": True,
+            "interval": 1
+        }
     }
 
     def __init__(self, **data):

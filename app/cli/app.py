@@ -9,6 +9,7 @@ from app.api.models.search_request import SearchCacheExportFilter
 from app.core.config import Config
 from app.api.managers.media_manager import MediaManager
 from app.core.status import Status
+from app.cli.settings import cli_settings
 import json
 
 app = typer.Typer()
@@ -23,13 +24,10 @@ app.add_typer(cache_app, name="cache")
 
 console = Console()
 
-# Base URL for the API
-API_BASE_URL = "http://localhost:8000"
-
 async def make_request(method: str, endpoint: str, data: Optional[dict] = None) -> dict:
     """Make an HTTP request to the API"""
-    async with httpx.AsyncClient(timeout=300.0) as client:  # 5 minute timeout
-        url = f"{API_BASE_URL}/{endpoint}"
+    async with httpx.AsyncClient(timeout=cli_settings.TIMEOUT) as client:
+        url = f"{cli_settings.API_BASE_URL}/{endpoint}"
         try:
             if method == "GET":
                 response = await client.get(url)
@@ -80,51 +78,11 @@ def refresh():
     console.print(f"[green]Success:[/green] {result['message']}")
 
 @media_app.command()
-def merge(
-    refresh: bool = typer.Option(False, "--refresh", "-r", help="Refresh the media library after merging"),
-    details: bool = typer.Option(False, "--details", "-d", help="Show detailed changes for each media type"),
-    dry_run: bool = typer.Option(False, "--dry-run", "-n", help="Show what would be merged without making changes"),
-    json: bool = typer.Option(False, "--json", "-j", help="Show the result in JSON format")
-):
-    """Merge the media library"""
-    console.print("[yellow]Merging media library...[/yellow]")
-    result = asyncio.run(make_request("POST", f"api/media/merge?refresh={str(refresh).lower()}&dry_run={str(dry_run).lower()}"))
+def update():
+    """Update the media library by scanning for changes and updating metadata"""
+    console.print("[yellow]Updating media library...[/yellow]")
+    result = asyncio.run(make_request("POST", "api/media/update"))
     console.print(f"[green]Success:[/green] {result['message']}")
-    
-    if json:
-        console.print_json(data=result)
-
-    # Display changes in a table only if details option is specified
-    if details and result.get('data', {}).get('merge'):
-        for media_type, merge_result in result['data']['merge'].items():
-            table = Table(title=f"{media_type.title()} Changes")
-            table.add_column("Type", style="cyan")
-            table.add_column("Folder", style="yellow")
-            table.add_column("Quality", style="green")
-            
-            # Add added folders
-            for folder, quality in merge_result.get('added_folders', {}).items():
-                table.add_row("Added", folder, quality)
-            
-            # Add updated folders
-            for folder, quality in merge_result.get('updated_folders', {}).items():
-                table.add_row("Updated", folder, quality)
-            
-            # Add deleted folders
-            for folder, quality in merge_result.get('deleted_folders', {}).items():
-                table.add_row("Removed", folder, quality)
-            
-            # Add skipped folders
-            for folder, quality in merge_result.get('skipped_folders', {}).items():
-                table.add_row("Skipped", folder, quality)
-            
-            # Add status row
-            table.add_row("Status", merge_result.get('status', 'unknown'), "")
-            
-            console.print(table)
-    
-    if refresh and result.get('data', {}).get('refresh'):
-        console.print(f"[green]Refresh Status:[/green] {result['data']['refresh']}")
 
 # Search command
 @app.command()
@@ -133,30 +91,34 @@ def search(
     query: Optional[str] = typer.Argument(None, help="Search query string"),
     media_type: Optional[str] = typer.Option(None, "--media-type", "-m", help="Media type (tv,movie)"),
     quality: Optional[str] = typer.Option(None, "--quality", "-q", help="Quality (hd,uhd,4k)"),
-    id: Optional[str] = typer.Option(None, "--id", "-i", help="Media ID to search for"),
     add_extended_info: bool = typer.Option(False, "--extended-info", "-e", help="Add extended info"),
     season: Optional[int] = typer.Option(None, "--season", "-s", help="Season number"),
     episode: Optional[int] = typer.Option(None, "--episode", "-e", help="Episode number"),
-    db_type: Optional[str] = typer.Option("media", "--db-type", "-d", help="Database types (comma-separated: media,cache,shadow)"),
+    db_type: Optional[str] = typer.Option("media", "--db-type", "-d", help="Database types (comma-separated: media,cache,export)"),
+    all_items: bool = typer.Option(False, "--all-items", "-a", help="Show all items"),
+    matrix_filepath: Optional[str] = typer.Option(None, "--matrix-filepath", "-f", help="Matrix filepath"),
+    relative_filepath: Optional[str] = typer.Option(None, "--relative-filepath", "-r", help="Relative filepath"),
     cache_export_filter: Optional[str] = typer.Option(None, "--cache-export-filter", "-c", help="Cache export filter (comma-separated: all,cache_export,not_cache_export)")
 ):
     """Search for media using the search request endpoint"""
     try:
         # If no query or id provided, show help and exit
-        if not query and not id:
-            console.print("[yellow]No search query or ID provided.[/yellow]")
+        if not query and not all_items:
+            console.print("[yellow]No search query provided.[/yellow]")
             console.print(ctx.get_help())
             return
 
-        search_term = id if id else query
+        search_term = query
         console.print(f"[yellow]Searching for '{search_term}'...[/yellow]")
         
         # Build query parameters
         params = {}
         if query:
             params["query"] = query
-        if id:
-            params["id"] = id
+        if matrix_filepath is not None:
+            params["matrix_filepath"] = matrix_filepath
+        if relative_filepath is not None:
+            params["relative_filepath"] = relative_filepath
         if media_type is not None:
             params["media_type"] = media_type
         if quality is not None:
@@ -204,10 +166,12 @@ def search(
 def health():
     """Check system health"""
     console.print("[yellow]Checking system health...[/yellow]")
-    result = asyncio.run(make_request("GET", "system/health"))
+    result = asyncio.run(make_request("GET", "api/system/health"))
     console.print(f"[green]Status:[/green] {result['message']}")
     if result.get('data', {}).get('timestamp'):
         console.print(f"[green]Timestamp:[/green] {result['data']['timestamp']}")
+    if result.get('data', {}).get('media_library_update_request_count'):
+        console.print(f"[green]Media library update request count:[/green] {result['data']['media_library_update_request_count']}")
 
 # Cache commands
 @cache_app.command()
@@ -233,9 +197,10 @@ def add(
     query: Optional[str] = typer.Argument(None, help="Search query string"),
     media_type: Optional[str] = typer.Option(None, "--media-type", "-m", help="Media type (tv,movie)"),
     quality: Optional[str] = typer.Option(None, "--quality", "-q", help="Quality (hd,uhd,4k)"),
-    id: Optional[str] = typer.Option(None, "--id", "-i", help="Media ID to search for"),
     season: Optional[int] = typer.Option(None, "--season", "-s", help="Season number"),
     episode: Optional[int] = typer.Option(None, "--episode", "-e", help="Episode number"),
+    matrix_filepath: Optional[str] = typer.Option(None, "--matrix-filepath", "-f", help="Matrix filepath"),
+    relative_filepath: Optional[str] = typer.Option(None, "--relative-filepath", "-r", help="Relative filepath"),
     dry_run: bool = typer.Option(False, "--dry-run", "-n", help="Show what would be added without making changes"),
 ):
     """Add an item to the cache"""
@@ -249,9 +214,10 @@ def add(
             "query": query, 
             "media_type": media_type, 
             "quality": quality, 
-            "id": id, 
             "season": season, 
             "episode": episode,
+            "matrix_filepath": matrix_filepath,
+            "relative_filepath": relative_filepath,
             "dry_run": dry_run
         }))
         
@@ -318,9 +284,22 @@ def remove(
         console.print(f"[red]Error:[/red] {str(e)}")
         raise typer.Exit(1)
 
+@cache_app.command()
+def clear_pre_cache():
+    """Clear the pre cache"""
+    try:
+        console.print("[yellow]Clearing pre cache...[/yellow]")
+        result = asyncio.run(make_request("POST", "api/cache/pre-cache/clear"))
+        console.print(f"[green]Success:[/green] {result['message']}")
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {str(e)}")
+        raise typer.Exit(1)
+
 @app.command()
 def sync(
     dry_run: bool = typer.Option(False, "--dry-run", "-n", help="Show what would be synced without making changes"),
+    details: bool = typer.Option(False, "--details", "-d", help="Show details of the sync operation"),
+    force: bool = typer.Option(False, "--force", "-f", help="Force sync even if the media library update request count is 0"),
 ):
     """Sync the cache with the media library"""
     if dry_run:
@@ -328,9 +307,9 @@ def sync(
     else:
         console.print("[yellow]Syncing cache with media library...[/yellow]")
     
-    result = asyncio.run(make_request("POST", "api/sync/", data={"dry_run": dry_run}))
+    result = asyncio.run(make_request("POST", "api/sync/", data={"dry_run": dry_run, "details": details, "force": force}))
     
-        # Display the data if it exists
+    # Display the data if it exists
     if result.get('data'):
         if dry_run:
             console.print("\n[cyan]Files that would be synced:[/cyan]")
@@ -338,6 +317,4 @@ def sync(
             console.print("\n[cyan]Files synced:[/cyan]")
         console.print_json(data=result['data'])
     else:
-            console.print("[yellow]No results found[/yellow]")
-if __name__ == "__main__":
-    app() 
+        console.print("[yellow]No results found[/yellow]") 

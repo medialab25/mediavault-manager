@@ -19,10 +19,11 @@ def search_media(
     query: str = Query(None, description="Search query string"),
     media_type: str = Query(None, description="Media type (tv,movie)"),
     quality: str = Query(None, description="Quality (hd,uhd,4k)"),
-    id: str = Query(None, description="Media ID to search for"),
     season: int = Query(None, description="Season number"),
     episode: int = Query(None, description="Episode number"),
     db_type: str = Query("media", description="Comma-separated list of database types (media,cache,shadow)"),
+    matrix_filepath: str = Query(None, description="Matrix filepath"),
+    relative_filepath: str = Query(None, description="Relative filepath"),
     cache_export_filter: str = Query("all", description="Cache export filter (all,apply,exclude)")
 ):
     """Search the media library by calling the Media Library API."""
@@ -44,10 +45,11 @@ def search_media(
             query=query or "",  # Convert None to empty string
             media_type=media_type,
             quality=quality,
-            id=id,
             season=season,
             episode=episode,
             db_type=db_types,
+            matrix_filepath=matrix_filepath,
+            relative_filepath=relative_filepath,
             cache_export_filter=cache_export_filter
         )
         result = media_manager.search_media(request)

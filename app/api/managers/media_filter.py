@@ -1,4 +1,5 @@
 # Class to take a SearchRequest and filter the MediaItemGroup based on the request
+import os
 from app.api.models.media_models import MediaItem, MediaItemGroup
 from app.api.models.search_request import SearchRequest
 
@@ -14,13 +15,15 @@ class MediaFilter:
             return False
         if self.request.query and self.request.query.lower() not in media_item.title.lower():
             return False
-        if self.request.id and self.request.id != media_item.id:
-            return False
         if self.request.season and self.request.season != media_item.season:
             return False
         if self.request.episode and self.request.episode != media_item.episode:
             return False
-        if self.request.db_type and media_item.db_type not in self.request.db_type:
+        if self.request.db_type and media_item.db_type not in self.request.db_type and not any(db_type.value == "all" for db_type in self.request.db_type):
+            return False
+        if self.request.matrix_filepath and self.request.matrix_filepath != media_item.get_matrix_filepath():
+            return False
+        if self.request.relative_filepath and self.request.relative_filepath != media_item.get_relative_filepath():
             return False
         
         return True
