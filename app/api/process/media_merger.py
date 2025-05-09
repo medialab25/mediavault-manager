@@ -45,6 +45,9 @@ class MediaMerger:
             if not media_matrix_info.quality_order:
                 continue
 
+            if not media_matrix_info.merge_prefix and not media_matrix_info.merge_quality:
+                continue
+
             # Get quality and prefix from config
             quality_order = media_matrix_info.quality_order
             prefix = media_matrix_info.media_prefix
@@ -79,12 +82,14 @@ class MediaMerger:
             all_merged_items = [item for items in merged_items_dict.values() for item in items]
 
             for item in all_merged_items:
-                current_item = self.item_manager.get_matching_item(item, current_cache.items, ItemMatchKey.TITLE_PATH)
-                if current_item:
-                    target_db_type = MediaDbType.CACHE_EXPORT
-                else:
-                    current_item = item
-                    target_db_type = MediaDbType.EXPORT
+                current_item = item
+                target_db_type = MediaDbType.EXPORT
+                if use_cache:
+                    cache_item = self.item_manager.get_matching_item(item, current_cache.items, ItemMatchKey.TITLE_PATH)
+                    if cache_item:
+                        current_item = cache_item
+                        target_db_type = MediaDbType.CACHE_EXPORT
+
                 # Find in the current cache group
 
                 new_item = self.item_manager.copy_update_item(current_item, target_db_type, media_prefix=merge_prefix, quality=merge_quality)
