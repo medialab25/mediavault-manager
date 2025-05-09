@@ -61,6 +61,3 @@ class ManifestManager(BaseDataPersistence):
         for manifest_type in ManifestType:
             self.set_data(manifest_type, [])
 
-    def update(self):
-        """Update the manifest"""
-        self.update()

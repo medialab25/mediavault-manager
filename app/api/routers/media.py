@@ -9,10 +9,7 @@ from app.api.models.response import APIResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-media_server = MediaServer(
-    jellyfin_url=settings.JELLYFIN["url"],
-    jellyfin_api_key=settings.JELLYFIN["api_key"]
-)
+media_server = MediaServer()
 media_manager = MediaManager(settings.MEDIA_LIBRARY)
 
 @router.post("/refresh", status_code=200)

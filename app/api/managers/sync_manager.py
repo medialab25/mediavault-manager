@@ -7,6 +7,7 @@ from app.api.managers.item_manager import ItemManager, ItemMatchKey
 from app.api.managers.matrix_manager import MatrixManager
 from app.api.managers.media_manager import MediaManager
 from app.api.managers.media_query import MediaQuery
+from app.api.managers.media_server import MediaServer
 from app.api.models.file_transaction_models import FileTransactionList, FileTransactionSettings, ExistingFileAction, FileOperationType
 from app.api.models.manifest_models import ManifestItem, ManifestItemGroup, ManifestType
 from app.api.models.media_models import MediaDbType, MediaItem, MediaItemGroup
@@ -31,7 +32,8 @@ class SyncManager:
         self.matrix_manager = MatrixManager(config)
         self.media_library_info = self.matrix_manager.get_media_library_info()
         self.manifest_manager = ManifestManager(config)
-
+        self.media_server = MediaServer()
+        
     def sync(self, dry_run: bool = False, details: bool = False, force: bool = False) -> dict[str, Any]:
         """Sync the cache with the media library
         
@@ -98,6 +100,9 @@ class SyncManager:
                 # Update manifests
                 self.update_manifest(manual_manifest_group, expected_merge_group.items)
                 self.manifest_manager.update()
+
+                # Refresh media server
+                self.media_server.refresh_media()
 
             if details:
                 return {
@@ -201,4 +206,4 @@ class SyncManager:
         items = [ManifestItem(full_file_path=item.full_file_path) for item in media_items]
 
         # At present replace all items in the manifest
-        self.manifest_manager.set_manifest_group(ManifestItemGroup(manifest_type=manifest_group, items=items))
+        self.manifest_manager.set_manifest_group(ManifestItemGroup(manifest_type=manifest_group.manifest_type, items=items))

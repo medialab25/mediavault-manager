@@ -2,7 +2,7 @@ from enum import Enum
 from typing import List
 from pydantic import BaseModel
 
-class ManifestType(Enum):
+class ManifestType(str,Enum):
     MANUAL = "manual"
     EPISODE = "episode"
     LATEST = "latest"
