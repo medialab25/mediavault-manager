@@ -5,9 +5,13 @@ from apscheduler.triggers.date import DateTrigger
 from datetime import datetime, timedelta
 from typing import Dict, Callable, Any, List, Optional
 from dataclasses import dataclass
+import asyncio
+import logging
 
 from app.api.managers.sync_manager import SyncManager
 from app.core.settings import settings
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class TaskConfig:
@@ -113,12 +117,24 @@ def remove_task(task_id: str) -> None:
     """Remove a task from the scheduler"""
     scheduler.remove_job(task_id)
 
-# Example task functions
 def sync_task():
-    print(f"Running sync task at {datetime.now()}")
-    sync_manager = SyncManager(settings.MEDIA_LIBRARY)
-    sync_manager.sync()
-    
+    """Run the sync task"""
+    try:
+        logger.info(f"Running sync task at {datetime.now()}")
+        sync_manager = SyncManager(settings.MEDIA_LIBRARY)
+        
+        # Create event loop for async operation
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        # Run the sync operation
+        result = loop.run_until_complete(sync_manager.sync())
+        loop.close()
+        
+        logger.info(f"Sync task completed: {result}")
+    except Exception as e:
+        logger.error(f"Error in sync task: {str(e)}", exc_info=True)
+
 # Register example tasks
 register_task("sync", sync_task)
 

@@ -49,9 +49,9 @@
             "enabled": true,
             "task_type": "cron",
             "function_name": "sync",
-            "cron_hour": "*",
-            "cron_minute": "*",
-            "cron_second": "0"
+            "cron_hour": "0",
+            "cron_minute": "15",
+            "cron_second": "*"
         }
     },
     "DEVICES": {
