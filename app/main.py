@@ -22,7 +22,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler('/tmp/mediavault-manager.log')
+        logging.FileHandler('/var/log/mediavault-manager/mediavault-manager.log')
     ]
 )
 @asynccontextmanager
