@@ -155,6 +155,9 @@ class SyncManager:
 
     def _delete_empty_folders(self, base_paths: list[str], dry_run: bool = False) -> None:
         for base_path in base_paths:
+            if not Path(base_path).exists():
+                continue
+
             # Get list of folders in base_path, only top level
             folders = [f for f in Path(base_path).iterdir() if f.is_dir()]
             for folder in folders:

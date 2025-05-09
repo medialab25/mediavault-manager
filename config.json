@@ -49,7 +49,7 @@
             "enabled": true,
             "task_type": "cron",
             "function_name": "sync",
-            "cron_hour": "0",
+            "cron_hour": "12",
             "cron_minute": "15",
             "cron_second": "*"
         }
