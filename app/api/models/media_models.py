@@ -118,6 +118,7 @@ class MediaItem(BaseModel):
 
 class MediaItemGroup(BaseModel):
     items: List[MediaItem]
+    id: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
    
     def copy(self) -> "MediaItemGroup":

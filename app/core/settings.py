@@ -38,11 +38,8 @@ class Settings(BaseSettings):
     # Media Library settings
     MEDIA_LIBRARY: Dict[str, Any] = {}
 
-    # Media Merge settings
-    MEDIA_MERGE: Dict[str, str] = {
-        "user": "1000",
-        "group": "1000"
-    }
+    # Devices settings (optional)
+    DEVICES: Optional[Dict[str, Dict[str, str]]] = {}
 
     # Cache settings
     MEDIA_CACHE: Dict[str, Any] = {
