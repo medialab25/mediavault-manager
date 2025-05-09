@@ -8,10 +8,12 @@ from app.api.managers.matrix_manager import MatrixManager
 from app.api.managers.media_manager import MediaManager
 from app.api.managers.media_query import MediaQuery
 from app.api.models.file_transaction_models import FileTransactionList, FileTransactionSettings, ExistingFileAction, FileOperationType
-from app.api.models.media_models import MediaDbType, MediaItemGroup
+from app.api.models.manifest_models import ManifestItem, ManifestItemGroup, ManifestType
+from app.api.models.media_models import MediaDbType, MediaItem, MediaItemGroup
 from app.api.models.search_request import SearchRequest
 from app.api.process.cache_processor import CacheProcessor
 from app.api.process.media_merger import MediaMerger
+from app.api.managers.manifest_manager import ManifestManager
 import logging
 
 logger = logging.getLogger(__name__)
@@ -28,6 +30,8 @@ class SyncManager:
         self.data_manager = DataManager(config)
         self.matrix_manager = MatrixManager(config)
         self.media_library_info = self.matrix_manager.get_media_library_info()
+        self.manifest_manager = ManifestManager(config)
+
     def sync(self, dry_run: bool = False, details: bool = False, force: bool = False) -> dict[str, Any]:
         """Sync the cache with the media library
         
@@ -46,6 +50,9 @@ class SyncManager:
                 }
             
             logger.debug(f"Starting sync{' (dry run)' if dry_run else ''}")
+
+            # Get manifest groups
+            manual_manifest_group = self.manifest_manager.get_manifest_group(ManifestType.MANUAL)
 
             # Get current state
             actual_media_model = self.media_manager.search_media(SearchRequest(db_type=[MediaDbType.MEDIA, MediaDbType.CACHE]))
@@ -87,6 +94,10 @@ class SyncManager:
                 # clear media library update request count
                 self.data_manager.clear_media_library_update_request()
                 self.data_manager.update()
+
+                # Update manifests
+                self.update_manifest(manual_manifest_group, expected_merge_group.items)
+                self.manifest_manager.update()
 
             if details:
                 return {
@@ -186,7 +197,8 @@ class SyncManager:
                 settings=FileTransactionSettings(existing_file_action=ExistingFileAction.SKIP_IF_SAME_SIZE),
                 metadata={})
 
+    def update_manifest(self, manifest_group: ManifestItemGroup, media_items: list[MediaItem]) -> None:
+        items = [ManifestItem(full_file_path=item.full_file_path) for item in media_items]
 
-
-        
-        
+        # At present replace all items in the manifest
+        self.manifest_manager.set_manifest_group(ManifestItemGroup(manifest_type=manifest_group, items=items))
