@@ -1,8 +1,9 @@
 from enum import Enum
+import os
 from pathlib import Path
 from typing import Any, Callable, Optional
 from app.api.managers.matrix_manager import MatrixManager
-from app.api.models.media_models import MediaDbType, MediaItem
+from app.api.models.media_models import ExtendedMediaInfo, MediaDbType, MediaItem
 
 class ItemMatchKey(Enum):
     RELATIVE_TITLE_FILEPATH = "relative_title_filepath"
@@ -15,6 +16,21 @@ class ItemManager:
         self.matrix_manager = MatrixManager(config)
         self.media_library_info = self.matrix_manager.get_media_library_info()
         
+    def get_extended_info(self, item: MediaItem) -> ExtendedMediaInfo:
+        if item.extended:
+            return item.extended
+        # Populate the extended info from file stat
+        file_path = item.full_file_path
+        try:
+            stat_result = os.stat(file_path)
+            return ExtendedMediaInfo(
+                size=stat_result.st_size,
+                created_at=stat_result.st_ctime,
+                updated_at=stat_result.st_mtime
+            )
+        except FileNotFoundError:
+            return None
+
     def get_match_key_function(self, match_key: ItemMatchKey) -> Callable[[MediaItem], str]:
         if match_key == ItemMatchKey.FULL_PATH:
             return self.get_full_file_path

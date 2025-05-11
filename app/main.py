@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -16,13 +17,23 @@ from app.api.routers.sync import router as sync_router
 from app.api.routers.system import router as system_router
 from app.scheduler import start_scheduler, stop_scheduler
 
+log_file_path = '/var/log/mediavault-manager/mediavault-manager.log'
+
+# Create the log directory if it doesn't exist, but if permissions fail create a log file in the current users home directory
+log_dir = Path(log_file_path).parent
+if not log_dir.exists():
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+    except PermissionError:
+        log_file_path = os.path.expanduser('~/mediavault-manager.log')
+
 # Configure logging
 logging.basicConfig(
     level=logging.DEBUG if settings.DEBUG else logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler('/var/log/mediavault-manager/mediavault-manager.log')
+        logging.FileHandler(log_file_path)
     ]
 )
 @asynccontextmanager
