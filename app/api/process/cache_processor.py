@@ -22,7 +22,7 @@ class CacheProcessor:
         self.media_library_info = self.matrix_manager.get_media_library_info()
         self.media_path = self.media_library_info.media_library_path
         
-    def get_expected_cache(self, current_cache: MediaItemGroup, dry_run: bool=False, max_cache_size_gb: int=100) -> MediaItemGroup:
+    def get_expected_cache(self, current_media: MediaItemGroup, current_cache: MediaItemGroup, dry_run: bool=False, max_cache_size_gb: int=100) -> MediaItemGroup:
         """Get the expected cache structure
         
         Args:
@@ -62,6 +62,20 @@ class CacheProcessor:
         for item in expected_cache_items:
             ext_info = self.item_manager.get_extended_info(item)
             cache_manifest['manual_cache_items'].append(CacheManifestItem(full_file_path=item.full_file_path, extended=ext_info))
+
+
+        # Get the list of media items in decending created time order
+        current_media_items_desc_time = sorted(current_media.items, key=lambda x: self.item_manager.get_extended_info(x).created_at, reverse=True)
+        add_expected_cache_items = []
+        for media_item in current_media_items_desc_time:
+            # Check if the item already exists in the expected cache items, using full_file_path as the comparison key
+            if self.item_manager.get_title_file_path(media_item) not in [self.item_manager.get_title_file_path(item) for item in expected_cache_items]:
+                expected_cache_size += self.item_manager.get_extended_info(media_item).size
+                if expected_cache_size > max_cache_size:
+                    break
+                add_expected_cache_items.append(media_item)
+
+        expected_cache_items.extend(self.item_manager.copy_update_items(add_expected_cache_items, MediaDbType.CACHE))
 
         # Save the cache manifest
         if not dry_run:

@@ -64,7 +64,7 @@ class SyncManager:
             # Process cache
             # Get the max cache size
             max_cache_size_gb = self.config.get("max_cache_size_gb", 100)
-            expected_cache_group = self.cache_processor.get_expected_cache(actual_cache_group, dry_run=dry_run, max_cache_size_gb=max_cache_size_gb)
+            expected_cache_group = self.cache_processor.get_expected_cache(actual_media_group, actual_cache_group, dry_run=dry_run, max_cache_size_gb=max_cache_size_gb)
 
             # Get merged items
             expected_merge_group = self.media_merger.merge_libraries(actual_media_group, expected_cache_group)
