@@ -22,7 +22,7 @@ class CacheProcessor:
         self.media_library_info = self.matrix_manager.get_media_library_info()
         self.media_path = self.media_library_info.media_library_path
         
-    def get_expected_cache(self, current_cache: MediaItemGroup, dry_run: bool=False) -> MediaItemGroup:
+    def get_expected_cache(self, current_cache: MediaItemGroup, dry_run: bool=False, max_cache_size_gb: int=100) -> MediaItemGroup:
         """Get the expected cache structure
         
         Args:
@@ -44,7 +44,18 @@ class CacheProcessor:
 
         # Add items to expected cache, if they don't already exist
         add_items = self.item_manager.copy_update_items(self.data_manager.get_add_cache_items(), MediaDbType.CACHE)
-        expected_cache_items.extend(add_items)
+
+        # max_cache_size in bytes
+        max_cache_size = max_cache_size_gb * 1024 * 1024 * 1024
+
+        # For each item only add if the total size of the cache is less than the max cache size
+        expected_cache_size = sum(self.item_manager.get_extended_info(item).size for item in expected_cache_items)
+        for item in add_items:
+            ext_info = self.item_manager.get_extended_info(item)
+            expected_cache_size += ext_info.size
+            if expected_cache_size > max_cache_size:
+                break
+            expected_cache_items.append(item)
 
         # Add expected cache items to the cache manifest
         cache_manifest['manual_cache_items'] = []

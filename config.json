@@ -34,6 +34,7 @@
             }
         },
         "cache_path": "/srv/disks/media-ssd/media",
+        "max_cache_size_gb": 100,
         "media_export_path": "/srv/storage/media/export",
         "cache_export_path": "/srv/disks/media-ssd/media/export",
         "system_data_path": "/srv/storage/media/system-data"
