@@ -82,6 +82,8 @@ class CacheProcessor:
                     add_expected_cache_items.append(media_item)
 
             expected_cache_items.extend(self.item_manager.copy_update_items(add_expected_cache_items, MediaDbType.CACHE))
+            # Add the expected cache items to the cache manifest
+            cache_manifest['latest_added_cache_items'] = [CacheManifestItem(full_file_path=item.full_file_path, title_file_path=self.item_manager.get_title_file_path(item), extended=self.item_manager.get_extended_info(item)) for item in add_expected_cache_items]
 
         # Save the cache manifest
         if not dry_run:
