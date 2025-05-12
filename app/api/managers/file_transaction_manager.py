@@ -129,6 +129,7 @@ class FileTransactionManager:
             for transaction in transactions:
                 transaction_settings = transaction.settings or self.file_transaction_settings
                 if transaction.type == FileOperationType.COPY:
+                    self._ensure_target_directory_exists(transaction.destination, summary.sequence_transactions, dry_run=dry_run)
                     if os.path.exists(transaction.destination):
                         if self._should_skip_file(transaction.source, transaction.destination, transaction_settings):
                             summary.skipped_transactions.append(transaction)
@@ -140,12 +141,12 @@ class FileTransactionManager:
                     else:
                         summary.added_transactions.append(transaction)
                         summary.sequence_transactions.append(FileSequenceTransaction(operation=FileSequenceTransactionOperation.COPY_FILE, source=transaction.source, destination=transaction.destination))
-                    self._ensure_target_directory_exists(transaction.destination, summary.sequence_transactions, dry_run=dry_run)
                     if not dry_run:
                         shutil.copy(transaction.source, transaction.destination)
                         if settings.write_file_metadata and transaction.metadata:
                             self._write_metadata_file(transaction.destination, transaction.metadata)
                 elif transaction.type == FileOperationType.MOVE:
+                    self._ensure_target_directory_exists(transaction.destination, summary.sequence_transactions, dry_run=dry_run)
                     if os.path.exists(transaction.destination):
                         if self._should_skip_file(transaction.source, transaction.destination, transaction_settings):
                             summary.skipped_transactions.append(transaction)
@@ -157,7 +158,6 @@ class FileTransactionManager:
                     else:
                         summary.added_transactions.append(transaction)
                         summary.sequence_transactions.append(FileSequenceTransaction(operation=FileSequenceTransactionOperation.MOVE_FILE, source=transaction.source, destination=transaction.destination))
-                    self._ensure_target_directory_exists(transaction.destination, summary.sequence_transactions, dry_run=dry_run)
                     if not dry_run:
                         shutil.move(transaction.source, transaction.destination)
                         if settings.write_file_metadata and transaction.metadata:
@@ -175,6 +175,7 @@ class FileTransactionManager:
                         summary.deleted_transactions.append(transaction)
                         summary.sequence_transactions.append(FileSequenceTransaction(operation=FileSequenceTransactionOperation.DELETE_FILE, source=transaction.source, destination=transaction.destination))
                 elif transaction.type == FileOperationType.LINK:
+                    self._ensure_target_directory_exists(transaction.destination, summary.sequence_transactions, dry_run=dry_run)
                     if os.path.exists(transaction.destination):
                         if self._should_skip_file(transaction.source, transaction.destination, transaction_settings):
                             summary.skipped_transactions.append(transaction)
@@ -186,7 +187,6 @@ class FileTransactionManager:
                     else:
                         summary.linked_transactions.append(transaction)
                         summary.sequence_transactions.append(FileSequenceTransaction(operation=FileSequenceTransactionOperation.LINK_FILE, source=transaction.source, destination=transaction.destination))
-                    self._ensure_target_directory_exists(transaction.destination, summary.sequence_transactions, dry_run=dry_run)
                     if not dry_run:
                         os.link(transaction.source, transaction.destination)
                         if settings.write_file_metadata and transaction.metadata:

@@ -43,14 +43,14 @@ class FileTransaction(BaseModel):
     destination: str
     metadata: dict[str, Any] = None
 
-class FileSequenceTransactionOperation(int,Enum):
-    CREATE_FOLDER = 0
-    DELETE_FOLDER = 1
-    COPY_FILE = 2
-    LINK_FILE = 3
-    MOVE_FILE = 4
-    DELETE_FILE = 5
-    UPDATE_FILE = 6
+class FileSequenceTransactionOperation(str,Enum):
+    CREATE_FOLDER = "create_folder"
+    DELETE_FOLDER = "delete_folder"
+    COPY_FILE = "copy_file"
+    LINK_FILE = "link_file"
+    MOVE_FILE = "move_file"
+    DELETE_FILE = "delete_file"
+    UPDATE_FILE = "update_file"
 
 class FileSequenceTransaction(BaseModel):
     operation: FileSequenceTransactionOperation
