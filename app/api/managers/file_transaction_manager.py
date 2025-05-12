@@ -2,9 +2,9 @@ import logging
 import os
 import shutil
 import json
-from typing import Any
+from typing import Any, List
 
-from app.api.models.file_transaction_models import ExistingFileAction, FileApplyTransactionSettings, FileOperationType, FileTransaction, FileTransactionList, FileTransactionSettings, FileTransactionSummary
+from app.api.models.file_transaction_models import ExistingFileAction, FileApplyTransactionSettings, FileOperationType, FileSequenceTransaction, FileSequenceTransactionOperation, FileTransaction, FileTransactionList, FileTransactionSettings, FileTransactionSummary
 
 class FileTransactionManager:
     def __init__(self, config: dict[str, Any]):
@@ -49,16 +49,19 @@ class FileTransactionManager:
             
         return False
 
-    def _ensure_target_directory_exists(self, file_path: str) -> None:
+    def _ensure_target_directory_exists(self, file_path: str, sequence_transactions: List[FileSequenceTransaction], dry_run: bool = False) -> None:
         """Ensure the target directory exists for a file path
         
         Args:
             file_path (str): Path to the target file
+            dry_run (bool): If True, simulate the operation without actually performing it
         """
         target_dir = os.path.dirname(file_path)
         if target_dir and not os.path.exists(target_dir):
-            os.makedirs(target_dir)
-
+            if not dry_run:
+                os.makedirs(target_dir)
+            sequence_transactions.append(FileSequenceTransaction(operation=FileSequenceTransactionOperation.CREATE_FOLDER, source=target_dir, destination=target_dir))
+            
     def _is_dir_empty(self, dir_path: str) -> bool:
         """Check if a directory is empty
         
@@ -112,7 +115,8 @@ class FileTransactionManager:
                 skipped_transactions=[],
                 deleted_transactions=[],
                 linked_transactions=[],
-                updated_transactions=[]
+                updated_transactions=[],
+                sequence_transactions=[]
             )
             
             # Apply list in this order: DELETE, LINK, COPY, MOVE, if apply_delete_first set
@@ -132,10 +136,12 @@ class FileTransactionManager:
                         if not dry_run:
                             os.remove(transaction.destination)
                         summary.updated_transactions.append(transaction)
+                        summary.sequence_transactions.append(FileSequenceTransaction(operation=FileSequenceTransactionOperation.UPDATE_FILE, source=transaction.source, destination=transaction.destination))
                     else:
                         summary.added_transactions.append(transaction)
+                        summary.sequence_transactions.append(FileSequenceTransaction(operation=FileSequenceTransactionOperation.COPY_FILE, source=transaction.source, destination=transaction.destination))
+                    self._ensure_target_directory_exists(transaction.destination, summary.sequence_transactions, dry_run=dry_run)
                     if not dry_run:
-                        self._ensure_target_directory_exists(transaction.destination)
                         shutil.copy(transaction.source, transaction.destination)
                         if settings.write_file_metadata and transaction.metadata:
                             self._write_metadata_file(transaction.destination, transaction.metadata)
@@ -147,10 +153,12 @@ class FileTransactionManager:
                         if not dry_run:
                             os.remove(transaction.destination)
                         summary.updated_transactions.append(transaction)
+                        summary.sequence_transactions.append(FileSequenceTransaction(operation=FileSequenceTransactionOperation.UPDATE_FILE, source=transaction.source, destination=transaction.destination))
                     else:
                         summary.added_transactions.append(transaction)
+                        summary.sequence_transactions.append(FileSequenceTransaction(operation=FileSequenceTransactionOperation.MOVE_FILE, source=transaction.source, destination=transaction.destination))
+                    self._ensure_target_directory_exists(transaction.destination, summary.sequence_transactions, dry_run=dry_run)
                     if not dry_run:
-                        self._ensure_target_directory_exists(transaction.destination)
                         shutil.move(transaction.source, transaction.destination)
                         if settings.write_file_metadata and transaction.metadata:
                             self._write_metadata_file(transaction.destination, transaction.metadata)
@@ -165,6 +173,7 @@ class FileTransactionManager:
                             # Remove empty parent directories
                             #self._remove_empty_parent_dirs(transaction.source)
                         summary.deleted_transactions.append(transaction)
+                        summary.sequence_transactions.append(FileSequenceTransaction(operation=FileSequenceTransactionOperation.DELETE_FILE, source=transaction.source, destination=transaction.destination))
                 elif transaction.type == FileOperationType.LINK:
                     if os.path.exists(transaction.destination):
                         if self._should_skip_file(transaction.source, transaction.destination, transaction_settings):
@@ -173,10 +182,12 @@ class FileTransactionManager:
                         if not dry_run:
                             os.remove(transaction.destination)
                         summary.updated_transactions.append(transaction)
+                        summary.sequence_transactions.append(FileSequenceTransaction(operation=FileSequenceTransactionOperation.UPDATE_FILE, source=transaction.source, destination=transaction.destination))
                     else:
                         summary.linked_transactions.append(transaction)
+                        summary.sequence_transactions.append(FileSequenceTransaction(operation=FileSequenceTransactionOperation.LINK_FILE, source=transaction.source, destination=transaction.destination))
+                    self._ensure_target_directory_exists(transaction.destination, summary.sequence_transactions, dry_run=dry_run)
                     if not dry_run:
-                        self._ensure_target_directory_exists(transaction.destination)
                         os.link(transaction.source, transaction.destination)
                         if settings.write_file_metadata and transaction.metadata:
                             self._write_metadata_file(transaction.destination, transaction.metadata)

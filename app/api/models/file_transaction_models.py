@@ -43,12 +43,27 @@ class FileTransaction(BaseModel):
     destination: str
     metadata: dict[str, Any] = None
 
+class FileSequenceTransactionOperation(int,Enum):
+    CREATE_FOLDER = 0
+    DELETE_FOLDER = 1
+    COPY_FILE = 2
+    LINK_FILE = 3
+    MOVE_FILE = 4
+    DELETE_FILE = 5
+    UPDATE_FILE = 6
+
+class FileSequenceTransaction(BaseModel):
+    operation: FileSequenceTransactionOperation
+    source: str
+    destination: str
+
 class FileTransactionSummary(BaseModel):
     added_transactions: List[FileTransaction]
     updated_transactions: List[FileTransaction]
     skipped_transactions: List[FileTransaction]
     deleted_transactions: List[FileTransaction]
     linked_transactions: List[FileTransaction]
+    sequence_transactions: List[FileSequenceTransaction]
 
 class FileTransactionList(BaseModel):
     transactions: List[FileTransaction]

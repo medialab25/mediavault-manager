@@ -4,7 +4,7 @@ import asyncio
 from typing import Optional
 from rich.console import Console
 from rich.table import Table
-from app.api.models.media_models import MediaDbType
+from app.api.models.media_models import MediaDbType, SyncDetailRequest
 from app.api.models.search_request import SearchCacheExportFilter
 from app.core.config import Config
 from app.api.managers.media_manager import MediaManager
@@ -298,7 +298,7 @@ def clear_pre_cache():
 @app.command()
 def sync(
     dry_run: bool = typer.Option(False, "--dry-run", "-n", help="Show what would be synced without making changes"),
-    details: bool = typer.Option(False, "--details", "-d", help="Show details of the sync operation"),
+    details: SyncDetailRequest = typer.Option("transactions", "--details", "-d", help="Show details of the sync operation"),
     force: bool = typer.Option(False, "--force", "-f", help="Force sync even if the media library update request count is 0"),
 ):
     """Sync the cache with the media library"""

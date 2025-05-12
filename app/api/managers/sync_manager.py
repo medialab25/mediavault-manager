@@ -8,8 +8,8 @@ from app.api.managers.matrix_manager import MatrixManager
 from app.api.managers.media_manager import MediaManager
 from app.api.managers.media_query import MediaQuery
 from app.api.managers.media_server import MediaServer
-from app.api.models.file_transaction_models import FileTransactionList, FileTransactionSettings, ExistingFileAction, FileOperationType
-from app.api.models.media_models import MediaDbType, MediaItemGroup
+from app.api.models.file_transaction_models import FileSequenceTransaction, FileSequenceTransactionOperation, FileTransactionList, FileTransactionSettings, ExistingFileAction, FileOperationType
+from app.api.models.media_models import MediaDbType, MediaItemGroup, SyncDetailRequest
 from app.api.models.search_request import SearchRequest
 from app.api.process.cache_processor import CacheProcessor
 from app.api.process.media_merger import MediaMerger
@@ -33,12 +33,12 @@ class SyncManager:
         self.manifest_manager = ManifestManager(config)
         self.media_server = MediaServer()
         
-    async def sync(self, dry_run: bool = False, details: bool = False, force: bool = False) -> dict[str, Any]:
+    async def sync(self, dry_run: bool = False, details: SyncDetailRequest = SyncDetailRequest.NONE, force: bool = False) -> dict[str, Any]:
         """Sync the cache with the media library
         
         Args:
             dry_run (bool): If True, only show what would be done without making changes
-            details (bool): If True, show details of the sync operation
+            details (SyncDetailRequest): If True, show details of the sync operation
         Returns:
             MediaItemGroupDict: The results of the sync operation
         """
@@ -85,7 +85,7 @@ class SyncManager:
             file_transaction_summary = self.file_transaction_manager.apply_file_transactions(file_transactions, settings=None, dry_run=dry_run)
 
             # Delete empty folders
-            self._delete_empty_folders([self.media_library_info.cache_library_path, self.media_library_info.export_library_path], dry_run=dry_run)
+            self._delete_empty_folders([self.media_library_info.cache_library_path, self.media_library_info.export_library_path], file_transaction_summary.sequence_transactions, dry_run=dry_run)
 
             # clear precache
             if not dry_run:
@@ -98,17 +98,24 @@ class SyncManager:
                 # Refresh media server
                 await self.media_server.refresh_media()
 
-            if details:
+            if details == SyncDetailRequest.DETAILS:
                 return {
                     "file_transaction_summary": file_transaction_summary,
                     "expected_cache_group": expected_cache_group,
                     "expected_merge_group": expected_merge_group,
                     "file_transactions": file_transactions
                 }
-            else:
+            elif details == SyncDetailRequest.SUMMARY:
                 return {
-                    "file_transaction_summary": file_transaction_summary,
+                    "file_transaction_summary": file_transaction_summary
                 }
+            elif details == SyncDetailRequest.TRANSACTIONS:
+                resultSummary = {
+                    "transactions": file_transaction_summary.sequence_transactions
+                }
+                return resultSummary
+            else:
+                return {}
 
         except Exception as e:
             logger.error(f"Error in sync: {str(e)}", exc_info=True)
@@ -138,16 +145,17 @@ class SyncManager:
         self._add_file_transactions(file_transactions, expected_group, operation_type)
         return file_transactions
 
-    def _recurse_delete_empty_folders(self, folder: Path, dry_run: bool = False) -> None:
+    def _recurse_delete_empty_folders(self, folder: Path, sequence_transactions: list[FileSequenceTransaction], dry_run: bool = False) -> None:
         for child in folder.iterdir():
             if child.is_dir():
-                self._recurse_delete_empty_folders(child, dry_run)
+                self._recurse_delete_empty_folders(child, sequence_transactions, dry_run)
         
         if folder.is_dir() and not any(folder.iterdir()):
             if not dry_run:
                 folder.rmdir()
+                sequence_transactions.append(FileSequenceTransaction(operation=FileSequenceTransactionOperation.DELETE_FOLDER, source=str(folder), destination=str(folder)))
 
-    def _delete_empty_folders(self, base_paths: list[str], dry_run: bool = False) -> None:
+    def _delete_empty_folders(self, base_paths: list[str], sequence_transactions: list[FileSequenceTransaction], dry_run: bool = False) -> None:
         for base_path in base_paths:
             if not Path(base_path).exists():
                 continue
@@ -157,7 +165,7 @@ class SyncManager:
             for folder in folders:
                 child_folders = [f for f in folder.iterdir() if f.is_dir()]
                 for child_folder in child_folders:
-                    self._recurse_delete_empty_folders(child_folder, dry_run)
+                    self._recurse_delete_empty_folders(child_folder, sequence_transactions, dry_run)
 
     def _add_file_delete_transactions(self, file_transactions: FileTransactionList, group_list: list[MediaItemGroup], base_paths: list[str]) -> None:
         # Get list of all allowed files from the group list

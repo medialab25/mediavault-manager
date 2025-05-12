@@ -3,6 +3,7 @@ import logging
 from fastapi import APIRouter, Body
 from typing import Dict
 
+from app.api.models.media_models import SyncDetailRequest
 from app.core.settings import settings
 from app.api.models.response import APIResponse 
 from app.api.managers.sync_manager import SyncManager
@@ -15,7 +16,7 @@ async def sync_cache(data: Dict = Body(...)):
     """Sync the cache with the media library"""
     try:
         dry_run = data.get("dry_run", False)    
-        details = data.get("details", False)
+        details = data.get("details", SyncDetailRequest.NONE)
         force = data.get("force", False)
         logger.debug(f"Syncing cache with media library{' (dry run)' if dry_run else ''}")
         result = await sync_manager.sync(dry_run=dry_run, details=details, force=force)

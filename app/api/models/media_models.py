@@ -10,6 +10,12 @@ class MediaDbType(str,Enum):
     EXPORT = "export"
     CACHE_EXPORT = "cache_export"
 
+class SyncDetailRequest(str,Enum):
+    NONE = "none"
+    TRANSACTIONS = "transactions"
+    SUMMARY = "summary"
+    DETAILS = "details"
+
 class ExtendedMediaInfo(BaseModel):
     size: int
     created_at: float
